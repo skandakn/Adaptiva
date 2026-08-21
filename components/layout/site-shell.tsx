@@ -52,9 +52,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="hidden items-center gap-3 lg:flex">
-            <span className="rounded-card border border-mint/30 bg-mint/12 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-moss">
-              Demo Mode
-            </span>
             <Button variant="secondary" asChild>
               <Link href="/auth/sign-in">
                 <LogIn aria-hidden="true" size={16} />
