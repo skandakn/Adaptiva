@@ -1,0 +1,35 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Adaptiva adaptive learning interface preview</title>
+  <desc id="desc">A calm product preview showing original content transformed into simplified text, audio, focus, and visual learning modes.</desc>
+  <rect width="1200" height="760" rx="32" fill="#F8FAF7"/>
+  <rect x="54" y="56" width="1092" height="648" rx="24" fill="white" stroke="#DDE8E3" stroke-width="2"/>
+  <rect x="96" y="104" width="1008" height="64" rx="12" fill="#142322"/>
+  <circle cx="132" cy="136" r="13" fill="#53BFA5"/>
+  <circle cx="171" cy="136" r="13" fill="#E76F61"/>
+  <circle cx="210" cy="136" r="13" fill="#F2B84B"/>
+  <rect x="770" y="123" width="282" height="26" rx="13" fill="#EEF5F2" opacity="0.35"/>
+  <rect x="96" y="208" width="462" height="400" rx="18" fill="#F3F7F4" stroke="#DDE8E3" stroke-width="2"/>
+  <rect x="642" y="208" width="462" height="400" rx="18" fill="#F3F7F4" stroke="#DDE8E3" stroke-width="2"/>
+  <text x="128" y="258" fill="#4A5552" font-family="Arial, sans-serif" font-size="24" font-weight="700">Original Content</text>
+  <rect x="128" y="292" width="358" height="18" rx="9" fill="#B8C9C1"/>
+  <rect x="128" y="328" width="306" height="18" rx="9" fill="#B8C9C1"/>
+  <rect x="128" y="364" width="378" height="18" rx="9" fill="#B8C9C1"/>
+  <rect x="128" y="400" width="246" height="18" rx="9" fill="#B8C9C1"/>
+  <text x="674" y="258" fill="#2F6B57" font-family="Arial, sans-serif" font-size="24" font-weight="700">Adapted by Adaptiva</text>
+  <rect x="674" y="294" width="338" height="48" rx="10" fill="#53BFA5" opacity="0.2"/>
+  <text x="694" y="325" fill="#142322" font-family="Arial, sans-serif" font-size="22" font-weight="700">DNA opens like a zipper.</text>
+  <rect x="674" y="364" width="370" height="86" rx="12" fill="white" stroke="#DDE8E3" stroke-width="2"/>
+  <circle cx="720" cy="407" r="19" fill="#F2B84B"/>
+  <rect x="760" y="390" width="218" height="16" rx="8" fill="#B8C9C1"/>
+  <rect x="760" y="420" width="152" height="16" rx="8" fill="#B8C9C1"/>
+  <rect x="674" y="474" width="104" height="52" rx="10" fill="#142322"/>
+  <rect x="794" y="474" width="104" height="52" rx="10" fill="#2F6B57"/>
+  <rect x="914" y="474" width="104" height="52" rx="10" fill="#E76F61"/>
+  <path d="M574 397C594 397 608 397 628 397" stroke="#2F6B57" stroke-width="8" stroke-linecap="round"/>
+  <path d="M614 377L634 397L614 417" stroke="#2F6B57" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="128" y="634" width="130" height="28" rx="14" fill="#2F6B57"/>
+  <rect x="278" y="634" width="130" height="28" rx="14" fill="#53BFA5"/>
+  <rect x="428" y="634" width="130" height="28" rx="14" fill="#E76F61"/>
+  <rect x="578" y="634" width="130" height="28" rx="14" fill="#F2B84B"/>
+  <rect x="728" y="634" width="130" height="28" rx="14" fill="#5A8FD8"/>
+</svg>
