@@ -4,6 +4,7 @@ import { ArrowRight, Brain, Clock, Flame, Sparkles, Target } from "lucide-react"
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AccessibilityProfileCard } from "@/components/accessibility/profile-card";
+import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { sampleLessons } from "@/lib/demo-data";
@@ -97,9 +98,7 @@ export function DashboardView() {
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-moss">Student Dashboard</p>
           <h1 className="mt-4 text-5xl font-black leading-tight text-ink">Good to see you.</h1>
-          <p className="mt-3 text-xl leading-8 text-graphite">
-            Your learning environment is adapted to you.
-          </p>
+          <ReadingContent className="mt-3 text-xl leading-8 text-graphite" text="Your learning environment is adapted to you." />
           <p className="mt-2 text-sm font-bold text-moss">{message}</p>
         </div>
         <Button size="lg" asChild>
@@ -135,10 +134,11 @@ export function DashboardView() {
                 className="flex min-h-20 items-center justify-between gap-4 rounded-card border border-ink/10 bg-paper px-4 py-3 transition hover:border-moss/40 hover:bg-cloud"
               >
                 <div>
-                  <p className="font-black text-ink">{material.title}</p>
-                  <p className="mt-1 text-sm text-graphite">
-                    {material.content_type.replace("_", " ")} material
-                  </p>
+                  <ReadingContent className="font-black text-ink" text={material.title} />
+                  <ReadingContent
+                    className="mt-1 text-sm text-graphite"
+                    text={`${material.content_type.replace("_", " ")} material`}
+                  />
                 </div>
                 <ArrowRight aria-hidden="true" className="text-moss" size={20} />
               </Link>
@@ -150,9 +150,10 @@ export function DashboardView() {
           <Panel>
             <Sparkles aria-hidden="true" className="text-moss" size={28} />
             <h2 className="mt-4 text-2xl font-black text-ink">Recommended next mode</h2>
-            <p className="mt-3 text-sm leading-7 text-graphite">
-              {data.stats.recommended_mode} is recommended from your saved accessibility profile.
-            </p>
+            <ReadingContent
+              className="mt-3 text-sm leading-7 text-graphite"
+              text={`${data.stats.recommended_mode} is recommended from your saved accessibility profile.`}
+            />
           </Panel>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LogIn, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/layout/logo";
+import { ReadingModeQuickControl } from "@/components/reading/reading-mode-quick-control";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="hidden items-center gap-3 lg:flex">
+            <ReadingModeQuickControl />
             <Button variant="secondary" asChild>
               <Link href="/auth/sign-in">
                 <LogIn aria-hidden="true" size={16} />
@@ -72,6 +74,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           >
             {open ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
           </button>
+          <ReadingModeQuickControl className="lg:hidden" />
         </div>
         {open ? (
           <nav

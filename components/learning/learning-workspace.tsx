@@ -19,7 +19,6 @@ import { AudioPlayer } from "@/components/learning/audio-player";
 import { FocusMode } from "@/components/learning/focus-mode";
 import { MindMap } from "@/components/learning/mind-map";
 import { ReadingContent } from "@/components/reading/reading-content";
-import { ReadingModeControls } from "@/components/reading/reading-mode-controls";
 import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
@@ -269,10 +268,6 @@ export function LearningWorkspace() {
             setStatus("Adaptiva created a simplified, chunked, audio-ready learning mode.");
           }}
         />
-      </div>
-
-      <div className="mt-6">
-        <ReadingModeControls textToRead={displayedText} />
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Learning modes">

@@ -4,7 +4,6 @@ import { ArrowDown, Leaf, Volume2, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReadingContent } from "./reading-content";
-import { ReadingModeControls } from "./reading-mode-controls";
 import { useReadingMode } from "./reading-mode-provider";
 
 const normalText =
@@ -13,7 +12,7 @@ const normalText =
 const adaptedText = "Photosynthesis\n\nPlants use sunlight to make food.\n\nMain idea:\nSUNLIGHT\nPLANT\nFOOD";
 
 export function ReadingModeShowcase() {
-  const { preferences, speak } = useReadingMode();
+  const { preferences, setEnabled, speak } = useReadingMode();
 
   return (
     <section className="rounded-card border border-ink/10 bg-white p-5 shadow-soft" aria-label="Reading Mode preview">
@@ -35,9 +34,22 @@ export function ReadingModeShowcase() {
         </span>
       </div>
 
-      <div className="mt-4">
-        <ReadingModeControls compact textToRead={adaptedText} />
-      </div>
+      <button
+        type="button"
+        aria-pressed={preferences.enabled}
+        className={cn(
+          "mt-4 flex min-h-12 w-full items-center justify-between gap-3 rounded-card border px-4 text-left transition",
+          preferences.enabled
+            ? "border-moss bg-mint/14 text-ink"
+            : "border-ink/10 bg-paper text-graphite hover:bg-cloud"
+        )}
+        onClick={() => setEnabled(!preferences.enabled)}
+      >
+        <span className="font-black">Reading Mode</span>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.1em] text-moss">
+          {preferences.enabled ? "ON" : "OFF"}
+        </span>
+      </button>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
         <div className="rounded-card border border-ink/10 bg-paper p-4">

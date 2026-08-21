@@ -1,5 +1,9 @@
+"use client";
+
 import { CheckCircle2, Headphones, Languages, ListChecks, ScanText } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
+import { useReadingMode } from "@/components/reading/reading-mode-provider";
+import { getReadingFontLabel } from "@/lib/reading-mode";
 
 type ProfileCardData = {
   reading_style?: string;
@@ -23,8 +27,13 @@ export function AccessibilityProfileCard({
   profile?: ProfileCardData | null;
   preferences?: PreferencesCardData | null;
 }) {
+  const { preferences: readingPreferences } = useReadingMode();
   const defaults = [
-    { label: "Reading", value: profile?.reading_style ?? "Dyslexia-friendly", icon: ScanText },
+    {
+      label: "Reading",
+      value: readingPreferences.enabled ? getReadingFontLabel(readingPreferences.font) : (profile?.reading_style ?? "Standard"),
+      icon: ScanText
+    },
     { label: "Focus", value: profile?.focus_mode === false ? "Guided" : "Reduced distractions", icon: CheckCircle2 },
     {
       label: "Explanation",

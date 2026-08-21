@@ -2,6 +2,7 @@
 
 import { Mic, MicOff, Save, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
@@ -181,7 +182,7 @@ export function LiveTranscript() {
         </div>
         <section className="mt-6 rounded-card border border-ink/10 bg-white p-4">
           <h2 className="text-lg font-black text-ink">Live transcript</h2>
-          <p className="mt-3 min-h-32 text-lg leading-9 text-graphite">{transcript}</p>
+          <ReadingContent className="mt-3 min-h-32 text-lg leading-9 text-graphite" text={transcript} />
         </section>
       </Panel>
       <Panel>
@@ -226,15 +227,17 @@ function AdaptiveExplanation({
       <p className="mt-3 inline-flex rounded-card bg-coral/14 px-3 py-2 text-sm font-black text-coral">
         ⚠ Complex concept detected
       </p>
-      <p className="mt-3 text-sm leading-7 text-graphite">
-        DNA replication contains several technical terms. Adaptiva recommends changing the explanation style.
-      </p>
+      <ReadingContent
+        className="mt-3 text-sm leading-7 text-graphite"
+        text="DNA replication contains several technical terms. Adaptiva recommends changing the explanation style."
+      />
 
       <div className="mt-4 rounded-card border border-ink/10 bg-white p-4">
         <h4 className="font-black text-ink">🧠 Why did Adaptiva adapt this?</h4>
-        <p className="mt-2 text-sm leading-7 text-graphite">
-          This topic contains unfamiliar scientific terms, so Adaptiva is offering simpler ways to understand it.
-        </p>
+        <ReadingContent
+          className="mt-2 text-sm leading-7 text-graphite"
+          text="This topic contains unfamiliar scientific terms, so Adaptiva is offering simpler ways to understand it."
+        />
       </div>
 
       <fieldset className="mt-4">
@@ -264,13 +267,13 @@ function AdaptiveExplanation({
       <div className="mt-4 rounded-card border border-ink/10 bg-white p-4" aria-live="polite">
         <h4 className="font-black text-ink">{explanation.title}</h4>
         {"steps" in explanation ? (
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-7 text-graphite">
+          <ol className="reading-content mt-2 list-decimal space-y-1 pl-5 text-sm leading-7 text-graphite">
             {explanation.steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
         ) : (
-          <p className="mt-2 text-sm leading-7 text-graphite">{explanation.text}</p>
+          <ReadingContent className="mt-2 text-sm leading-7 text-graphite" text={explanation.text} />
         )}
       </div>
     </section>
@@ -281,7 +284,7 @@ function NoteBlock({ title, body }: { title: string; body: string }) {
   return (
     <section className="rounded-card bg-paper p-4">
       <h3 className="font-black text-ink">{title}</h3>
-      <p className="mt-2 text-sm leading-7 text-graphite">{body}</p>
+      <ReadingContent className="mt-2 text-sm leading-7 text-graphite" text={body} />
     </section>
   );
 }
