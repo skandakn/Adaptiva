@@ -134,6 +134,30 @@ export const mindMapsByLanguage: Record<ContentLanguage, MindMapNode> = {
     finish: "दो प्रतियाँ बनती हैं",
     ligase: "लाइगेस अंतर बंद करता है",
     accurate: "आनुवंशिक निर्देश सुरक्षित रहते हैं"
+  }),
+  Urdu: mapLabels(featuredLesson.mindMap, {
+    dna: "ڈی این اے نقل",
+    open: "ڈی این اے کھلتا ہے",
+    helicase: "ہیلیکیز",
+    strands: "دو سانچہ زنجیریں",
+    copy: "نئے بیس جڑتے ہیں",
+    polymerase: "ڈی این اے پولیمریز",
+    pairing: "A-T اور C-G جوڑی",
+    finish: "دو نقول بنتی ہیں",
+    ligase: "لائیگیز خلا بند کرتا ہے",
+    accurate: "جینیاتی ہدایات محفوظ رہتی ہیں"
+  }),
+  Tamil: mapLabels(featuredLesson.mindMap, {
+    dna: "DNA நகலெடுப்பு",
+    open: "DNA திறக்கிறது",
+    helicase: "ஹெலிகேஸ்",
+    strands: "இரண்டு வார்ப்புரு இழைகள்",
+    copy: "புதிய அடிப்பகுதிகள் சேர்கின்றன",
+    polymerase: "DNA பாலிமரேஸ்",
+    pairing: "A-T மற்றும் C-G ஜோடி",
+    finish: "இரண்டு பிரதிகள் உருவாகின்றன",
+    ligase: "லைகேஸ் இடைவெளிகளை மூடுகிறது",
+    accurate: "மரபணு வழிமுறைகள் காக்கப்படுகின்றன"
   })
 };
 
@@ -152,6 +176,20 @@ export const keyConceptsByLanguage: Record<ContentLanguage, string[]> = {
     "डीएनए पॉलीमरेज़",
     "हेलिकेस",
     "सटीक आनुवंशिक निर्देश"
+  ],
+  Urdu: [
+    "نیم محفوظ نقل",
+    "بیس جوڑ بنانا",
+    "ڈی این اے پولیمریز",
+    "ہیلیکیز",
+    "درست جینیاتی ہدایات"
+  ],
+  Tamil: [
+    "அரை-பாதுகாப்பான நகலெடுப்பு",
+    "அடிப்பகுதி இணைப்பு",
+    "DNA பாலிமரேஸ்",
+    "ஹெலிகேஸ்",
+    "துல்லியமான மரபணு வழிமுறைகள்"
   ]
 };
 

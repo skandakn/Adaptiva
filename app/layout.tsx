@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppLanguageProvider } from "@/components/i18n/language-provider";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ReadingModeProvider } from "@/components/reading/reading-mode-provider";
 
@@ -17,9 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ReadingModeProvider>
-          <SiteShell>{children}</SiteShell>
-        </ReadingModeProvider>
+        <AppLanguageProvider>
+          <ReadingModeProvider>
+            <SiteShell>{children}</SiteShell>
+          </ReadingModeProvider>
+        </AppLanguageProvider>
       </body>
     </html>
   );

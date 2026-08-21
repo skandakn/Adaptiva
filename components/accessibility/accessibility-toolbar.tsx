@@ -3,11 +3,19 @@
 import { Contrast, Languages, RotateCcw, Volume2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAppLanguage } from "@/components/i18n/language-provider";
 import { ReadingContent } from "@/components/reading/reading-content";
 import { ReadingModeControls } from "@/components/reading/reading-mode-controls";
 import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
+import {
+  defaultLanguage,
+  isContentLanguage,
+  languageOptions,
+  languageStorageKey
+} from "@/lib/i18n/languages";
 import { readingPreferencesToProfilePayload } from "@/lib/reading-mode";
+import type { ContentLanguage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const previewText =
@@ -15,7 +23,7 @@ const previewText =
 
 export function AccessibilityToolbar() {
   const { preferences, resetReadingMode } = useReadingMode();
-  const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
+  const { language, setLanguage } = useAppLanguage();
   const [contrast, setContrast] = useState(false);
   const [motion, setMotion] = useState(false);
   const [message, setMessage] = useState("Reading preferences restore automatically on this device.");
@@ -33,9 +41,13 @@ export function AccessibilityToolbar() {
       try {
         const response = await fetch("/api/profile");
         const data = (await response.json()) as {
-          profile?: { preferred_language?: "English" | "Kannada" | "Hindi" };
+          profile?: { preferred_language?: ContentLanguage };
         };
-        if (response.ok && data.profile?.preferred_language) {
+        if (
+          response.ok &&
+          isContentLanguage(data.profile?.preferred_language) &&
+          !window.localStorage.getItem(languageStorageKey)
+        ) {
           setLanguage(data.profile.preferred_language);
         }
       } catch {
@@ -44,7 +56,7 @@ export function AccessibilityToolbar() {
     }
 
     void loadLanguage();
-  }, []);
+  }, [setLanguage]);
 
   async function saveSettings() {
     try {
@@ -83,7 +95,7 @@ export function AccessibilityToolbar() {
             type="button"
             onClick={() => {
               resetReadingMode();
-              setLanguage("English");
+              setLanguage(defaultLanguage);
               setContrast(false);
               setMotion(false);
               setMessage("Settings reset.");
@@ -108,11 +120,13 @@ export function AccessibilityToolbar() {
             aria-label="Preferred language"
             className="min-h-11 w-full rounded-card border border-ink/10 bg-white px-3 font-black"
             value={language}
-            onChange={(event) => setLanguage(event.target.value as "English" | "Kannada" | "Hindi")}
+            onChange={(event) => setLanguage(event.target.value as ContentLanguage)}
           >
-            <option>English</option>
-            <option>Kannada</option>
-            <option>Hindi</option>
+            {languageOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.nativeLabel} · {option.label}
+              </option>
+            ))}
           </select>
         </ControlGroup>
         <Toggle active={contrast} icon={Contrast} label="High contrast" onClick={() => setContrast((v) => !v)} />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogIn, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Logo } from "@/components/layout/logo";
 import { ReadingModeQuickControl } from "@/components/reading/reading-mode-quick-control";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="hidden items-center gap-3 lg:flex">
+            <LanguageSwitcher />
             <ReadingModeQuickControl />
             <Button variant="secondary" asChild>
               <Link href="/auth/sign-in">
@@ -66,6 +68,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
             <ReadingModeQuickControl />
             <button
               type="button"
@@ -84,6 +89,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             aria-label="Mobile navigation"
           >
             <div className="grid gap-2">
+              <LanguageSwitcher compact />
               {allNav.map((item) => (
                 <Link
                   key={item.href}

@@ -8,7 +8,7 @@ const sections = [
   ["Focus", "Distraction reduction, focus guide, animation control"],
   ["Audio", "Voice, speed, auto-read"],
   ["Visual", "Contrast, brightness-friendly mode, reduced motion"],
-  ["Language", "English, Kannada, Hindi"],
+  ["Language", "English, Hindi, Kannada, Urdu, Tamil"],
   ["Interaction", "Keyboard navigation, larger buttons"]
 ];
 

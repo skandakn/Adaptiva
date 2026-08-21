@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const languageSchema = z.enum(["English", "Kannada", "Hindi"]);
+export const languageSchema = z.enum(["English", "Kannada", "Hindi", "Urdu", "Tamil"]);
 
 export const contentTypeSchema = z.enum(["pdf", "text", "image", "video", "live_lecture"]);
 
@@ -129,4 +129,9 @@ export const figureRegenerateSchema = z.object({
   content: z.string().min(1).max(20000).optional(),
   complexity: z.enum(["simple", "detailed"]).optional(),
   figureType: figureTypeSchema.optional()
+});
+
+export const translatePayloadSchema = z.object({
+  language: languageSchema,
+  texts: z.array(z.string().min(1).max(4000)).min(1).max(120)
 });

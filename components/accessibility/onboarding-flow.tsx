@@ -4,6 +4,7 @@ import { CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAppLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { AccessibilityProfileCard } from "@/components/accessibility/profile-card";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 export function OnboardingFlow() {
   const router = useRouter();
+  const { language } = useAppLanguage();
   const [selected, setSelected] = useState<AccessibilitySupport[]>([
     "Dyslexia-friendly reading",
     "Focus support",
@@ -40,7 +42,7 @@ export function OnboardingFlow() {
           reading_style: selected.includes("Dyslexia-friendly reading") ? "Dyslexia-friendly" : "Standard",
           focus_mode: selected.includes("Focus support"),
           audio_enabled: selected.includes("Audio learning"),
-          preferred_language: "English",
+          preferred_language: language,
           preferences: {
             dyslexia_support: selected.includes("Dyslexia-friendly reading"),
             focus_support: selected.includes("Focus support"),

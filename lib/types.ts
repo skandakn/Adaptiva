@@ -11,7 +11,7 @@ export type AccessibilitySupport =
 
 export type LearningMode = "Original" | "Simplified" | "Focus" | "Audio" | "Visual";
 
-export type ContentLanguage = "English" | "Kannada" | "Hindi";
+export type ContentLanguage = "English" | "Kannada" | "Hindi" | "Urdu" | "Tamil";
 
 export type MindMapNode = {
   id: string;

@@ -23,6 +23,7 @@ import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
 import { featuredLesson, keyConceptsByLanguage, mindMapsByLanguage } from "@/lib/demo-data";
+import { languageOptions } from "@/lib/i18n/languages";
 import { getReadingFontLabel } from "@/lib/reading-mode";
 import type { ContentLanguage, LearningMode, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -164,7 +165,10 @@ export function LearningWorkspace() {
     }
 
     try {
-      const nextLanguage = action === "Translate" ? (language === "English" ? "Kannada" : language === "Kannada" ? "Hindi" : "English") : language;
+      const nextLanguage =
+        action === "Translate"
+          ? languageOptions[(languageOptions.findIndex((item) => item.value === language) + 1) % languageOptions.length]!.value
+          : language;
       const response = await fetch("/api/adapt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

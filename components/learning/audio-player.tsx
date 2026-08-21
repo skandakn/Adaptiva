@@ -10,7 +10,9 @@ const speeds = [0.75, 1, 1.25, 1.5];
 const languageLocales = {
   English: "en-US",
   Kannada: "kn-IN",
-  Hindi: "hi-IN"
+  Hindi: "hi-IN",
+  Urdu: "ur-IN",
+  Tamil: "ta-IN"
 } as const;
 
 export function AudioPlayer({

@@ -260,10 +260,16 @@ export async function translateContent(language: ContentLanguage, input = featur
     return callOpenAI(`Keep the content in English. Clarify wording without adding new facts.`, input, input);
   }
 
-  const demoFallback =
-    language === "Kannada"
-      ? "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ ಎಂದರೆ ಕೋಶ ವಿಭಜನೆಯಾಗುವ ಮೊದಲು ಡಿಎನ್‌ಎಯ ಒಂದು ಪ್ರತಿಯನ್ನು ತಯಾರಿಸುವ ಪ್ರಕ್ರಿಯೆ. ಡಿಎನ್‌ಎ ಜಿಪ್ಪರ್‌ನಂತೆ ತೆರೆಯುತ್ತದೆ, ನಂತರ ಹೊಸ ಹೊಂದಾಣಿಕೆಯ ಸರಪಳಿಗಳು ನಿರ್ಮಾಣವಾಗುತ್ತವೆ."
-      : "डीएनए प्रतिकृति वह प्रक्रिया है जिसमें कोशिका विभाजन से पहले डीएनए की एक प्रति बनाती है। डीएनए ज़िप की तरह खुलता है और फिर नई मिलान वाली श्रृंखलाएँ बनती हैं।";
+  const demoFallbackByLanguage: Record<Exclude<ContentLanguage, "English">, string> = {
+    Kannada:
+      "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ ಎಂದರೆ ಕೋಶ ವಿಭಜನೆಯಾಗುವ ಮೊದಲು ಡಿಎನ್‌ಎಯ ಒಂದು ಪ್ರತಿಯನ್ನು ತಯಾರಿಸುವ ಪ್ರಕ್ರಿಯೆ. ಡಿಎನ್‌ಎ ಜಿಪ್ಪರ್‌ನಂತೆ ತೆರೆಯುತ್ತದೆ, ನಂತರ ಹೊಸ ಹೊಂದಾಣಿಕೆಯ ಸರಪಳಿಗಳು ನಿರ್ಮಾಣವಾಗುತ್ತವೆ.",
+    Hindi:
+      "डीएनए प्रतिकृति वह प्रक्रिया है जिसमें कोशिका विभाजन से पहले डीएनए की एक प्रति बनाती है। डीएनए ज़िप की तरह खुलता है और फिर नई मिलान वाली श्रृंखलाएँ बनती हैं।",
+    Urdu:
+      "ڈی این اے نقل وہ عمل ہے جس میں خلیہ تقسیم سے پہلے اپنے ڈی این اے کی ایک کاپی بناتا ہے۔ ڈی این اے زپ کی طرح کھلتا ہے، پھر نئی ملتی ہوئی زنجیریں بنتی ہیں۔",
+    Tamil:
+      "DNA நகலெடுப்பு என்பது செல்கள் பிரிவதற்கு முன் DNA-வின் ஒரு பிரதியை உருவாக்கும் செயல்முறை. DNA ஜிப் போல திறக்கிறது; பிறகு பொருந்தும் புதிய இழைகள் உருவாகின்றன."
+  };
 
   const usesDemoLesson =
     input.includes("DNA replication") ||
@@ -274,7 +280,7 @@ export async function translateContent(language: ContentLanguage, input = featur
   return callOpenAI(
     `Translate the educational content into ${language}. Keep scientific terms clear for a learner. Preserve paragraph and line breaks. Do not add new facts.`,
     input,
-    usesDemoLesson ? demoFallback : input
+    usesDemoLesson ? demoFallbackByLanguage[language] : input
   );
 }
 
@@ -306,6 +312,6 @@ export async function analyzeAccessibilityNeeds(preferences: AccessibilitySuppor
     focus: preferences.includes("Focus support") ? "Minimal distraction" : "Guided",
     explanation: preferences.includes("Step-by-step learning") ? "Step-by-step" : "Simple",
     audio: preferences.includes("Audio learning") ? "Enabled" : "Optional",
-    language: preferences.includes("Translation support") ? "English + translation-ready" : "English"
+    language: preferences.includes("Translation support") ? "English, Hindi, Kannada, Urdu, Tamil" : "English"
   };
 }

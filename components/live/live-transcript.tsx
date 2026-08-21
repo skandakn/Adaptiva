@@ -81,18 +81,42 @@ const liveLanguages: Array<{ label: ContentLanguage; locale: string; demoTranscr
       "हेलिकेस डीएनए को खोलता है और पॉलीमरेज़ नई श्रृंखलाएँ बनाता है।",
       "अंत में डीएनए की दो समान प्रतियाँ बनती हैं।"
     ]
+  },
+  {
+    label: "Urdu",
+    locale: "ur-IN",
+    demoTranscript: [
+      "ڈی این اے زندہ خلیوں کی ہدایت نامہ جیسا ہے۔",
+      "خلیہ تقسیم سے پہلے ڈی این اے اپنی نقل بناتا ہے۔",
+      "ہیلیکیز ڈی این اے کو کھولتا ہے اور پولیمریز نئی زنجیریں بناتا ہے۔",
+      "آخر میں ڈی این اے کی دو ایک جیسی نقول بنتی ہیں۔"
+    ]
+  },
+  {
+    label: "Tamil",
+    locale: "ta-IN",
+    demoTranscript: [
+      "DNA உயிரணுக்களின் வழிகாட்டி புத்தகம் போன்றது.",
+      "செல் பிரிவதற்கு முன் DNA தனது பிரதியை உருவாக்குகிறது.",
+      "ஹெலிகேஸ் DNA-வை திறக்கிறது; பாலிமரேஸ் புதிய இழைகளை உருவாக்குகிறது.",
+      "இறுதியில் ஒரே மாதிரியான இரண்டு DNA பிரதிகள் உருவாகின்றன."
+    ]
   }
 ];
 
 function detectLanguageFromText(text: string): ContentLanguage {
   if (/[\u0C80-\u0CFF]/.test(text)) return "Kannada";
   if (/[\u0900-\u097F]/.test(text)) return "Hindi";
+  if (/[\u0600-\u06FF]/.test(text)) return "Urdu";
+  if (/[\u0B80-\u0BFF]/.test(text)) return "Tamil";
   return "English";
 }
 
 function languageCode(language: ContentLanguage) {
   if (language === "Kannada") return "kn";
   if (language === "Hindi") return "hi";
+  if (language === "Urdu") return "ur";
+  if (language === "Tamil") return "ta";
   return "en";
 }
 
@@ -101,6 +125,8 @@ function browserSpeechLocale() {
   const preferred = navigator.languages?.[0] ?? navigator.language;
   if (preferred?.toLowerCase().startsWith("kn")) return "kn-IN";
   if (preferred?.toLowerCase().startsWith("hi")) return "hi-IN";
+  if (preferred?.toLowerCase().startsWith("ur")) return "ur-IN";
+  if (preferred?.toLowerCase().startsWith("ta")) return "ta-IN";
   return preferred || "en-US";
 }
 
@@ -108,6 +134,8 @@ function demoLanguageFromBrowser(): ContentLanguage {
   const locale = browserSpeechLocale().toLowerCase();
   if (locale.startsWith("kn")) return "Kannada";
   if (locale.startsWith("hi")) return "Hindi";
+  if (locale.startsWith("ur")) return "Urdu";
+  if (locale.startsWith("ta")) return "Tamil";
   return "English";
 }
 
@@ -253,7 +281,7 @@ export function LiveTranscript() {
         </div>
         <section className="mt-6 rounded-card border border-ink/10 bg-white p-4">
           <h2 className="text-lg font-black text-ink">Live transcript</h2>
-          <div lang={langCode}>
+          <div lang={langCode} dir={language === "Urdu" ? "rtl" : "ltr"}>
             <ReadingContent className="mt-3 min-h-32 text-lg leading-9 text-graphite" text={transcript} />
           </div>
         </section>

@@ -20,7 +20,9 @@ const PAD = 36;
 const LANGUAGE_LABEL: Record<ContentLanguage, string> = {
   English: "English",
   Kannada: "ಕನ್ನಡ",
-  Hindi: "हिन्दी"
+  Hindi: "हिन्दी",
+  Urdu: "اردو",
+  Tamil: "தமிழ்"
 };
 
 type PlacedNode = {
@@ -34,7 +36,7 @@ type PlacedNode = {
 };
 
 function estimateWidth(label: string) {
-  const wide = /[\u0900-\u097F\u0C80-\u0CFF]/.test(label);
+  const wide = /[\u0600-\u06FF\u0900-\u097F\u0B80-\u0BFF\u0C80-\u0CFF]/.test(label);
   const charWidth = wide ? 13 : 8.2;
   return Math.min(210, Math.max(128, Math.round(label.length * charWidth + 28)));
 }
@@ -85,7 +87,8 @@ export function MindMap({
   const [selected, setSelected] = useState(node.id);
   const [saved, setSaved] = useState(false);
   const svgId = useId().replace(/:/g, "");
-  const langCode = language === "Kannada" ? "kn" : language === "Hindi" ? "hi" : "en";
+  const langCode =
+    language === "Kannada" ? "kn" : language === "Hindi" ? "hi" : language === "Urdu" ? "ur" : language === "Tamil" ? "ta" : "en";
 
   useEffect(() => {
     const ids = new Set<string>();
@@ -128,6 +131,7 @@ export function MindMap({
 
       <div
         lang={langCode}
+        dir={language === "Urdu" ? "rtl" : "ltr"}
         className="relative mt-6 overflow-x-auto rounded-card border border-moss/15 bg-[radial-gradient(circle_at_top,#ffffff,rgba(238,245,242,0.92)_58%,#e7f1ec)] p-3 shadow-inner"
       >
         <svg
@@ -224,7 +228,7 @@ export function MindMap({
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
         <div className="rounded-card border border-moss/20 bg-white/80 p-4">
           <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Selected idea</p>
-          <p lang={langCode} className="mt-2 text-lg font-black text-ink">
+          <p lang={langCode} dir={language === "Urdu" ? "rtl" : "ltr"} className="mt-2 text-lg font-black text-ink">
             {selectedNode.label}
           </p>
           <p className="mt-1 text-sm font-bold text-graphite">
