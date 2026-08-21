@@ -6,12 +6,15 @@ import {
   generateQuiz,
   simplifyText,
   summarizeContent,
-  translateContent
+  translateContent,
+  translateMindMap
 } from "@/lib/ai-service";
 import { requireApiUser } from "@/lib/api/auth";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { adaptPayloadSchema } from "@/lib/api/validation";
 import { demoStore } from "@/lib/api/demo-store";
+import { featuredLesson } from "@/lib/demo-data";
+import type { MindMapNode } from "@/lib/types";
 
 export async function POST(request: Request) {
   try {
@@ -26,9 +29,16 @@ export async function POST(request: Request) {
     if (payload.action === "simplify") result = await simplifyText(payload.text, payload.level);
     if (payload.action === "summarize") result = await summarizeContent(payload.text);
     if (payload.action === "step-by-step") result = await explainStepByStep(payload.text);
-    if (payload.action === "mind-map") result = await generateMindMap(payload.text);
+    if (payload.action === "mind-map") result = await generateMindMap(payload.text, payload.language);
     if (payload.action === "quiz") result = await generateQuiz(payload.text);
-    if (payload.action === "translate") result = await translateContent(payload.language, payload.text);
+    if (payload.action === "translate") {
+      const sourceMap = (payload.mind_map as MindMapNode | undefined) ?? featuredLesson.mindMap;
+      const [text, translatedMap] = await Promise.all([
+        translateContent(payload.language, payload.text),
+        translateMindMap(payload.language, sourceMap)
+      ]);
+      result = { text, mindMap: translatedMap };
+    }
     if (payload.action === "concepts") result = await extractConcepts(payload.text);
     if (payload.action === "ask") result = await askTutor(payload.text, payload.question);
 

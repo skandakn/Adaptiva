@@ -1,4 +1,4 @@
-import type { Lesson, TutorMessage } from "@/lib/types";
+import type { ContentLanguage, Lesson, MindMapNode, TutorMessage } from "@/lib/types";
 
 export const supportOptions = [
   "Dyslexia-friendly reading",
@@ -98,6 +98,60 @@ export const featuredLesson: Lesson = {
       time: "01:48",
       text: "The result is two DNA molecules that carry the same genetic information."
     }
+  ]
+};
+
+function mapLabels(node: MindMapNode, labels: Record<string, string>): MindMapNode {
+  return {
+    ...node,
+    label: labels[node.id] ?? node.label,
+    children: node.children?.map((child) => mapLabels(child, labels))
+  };
+}
+
+export const mindMapsByLanguage: Record<ContentLanguage, MindMapNode> = {
+  English: featuredLesson.mindMap,
+  Kannada: mapLabels(featuredLesson.mindMap, {
+    dna: "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ",
+    open: "ಡಿಎನ್‌ಎ ತೆರೆಯುತ್ತದೆ",
+    helicase: "ಹೆಲಿಕೇಸ್",
+    strands: "ಎರಡು ಟೆಂಪ್ಲೇಟ್ ಸರಪಳಿಗಳು",
+    copy: "ಹೊಸ ಬೇಸ್‌ಗಳು ಸೇರುತ್ತವೆ",
+    polymerase: "ಡಿಎನ್‌ಎ ಪಾಲಿಮರೇಸ್",
+    pairing: "A-T ಮತ್ತು C-G ಜೋಡಿ",
+    finish: "ಎರಡು ಪ್ರತಿಗಳು ರೂಪುಗೊಳ್ಳುತ್ತವೆ",
+    ligase: "ಲೈಗೇಸ್ ಅಂತರ ಮುಚ್ಚುತ್ತದೆ",
+    accurate: "ಆನುವಂಶಿಕ ಸೂಚನೆಗಳು ಉಳಿಯುತ್ತವೆ"
+  }),
+  Hindi: mapLabels(featuredLesson.mindMap, {
+    dna: "डीएनए प्रतिकृति",
+    open: "डीएनए खुलता है",
+    helicase: "हेलिकेस",
+    strands: "दो टेम्पलेट श्रृंखलाएँ",
+    copy: "नए बेस जुड़ते हैं",
+    polymerase: "डीएनए पॉलीमरेज़",
+    pairing: "A-T और C-G जोड़ी",
+    finish: "दो प्रतियाँ बनती हैं",
+    ligase: "लाइगेस अंतर बंद करता है",
+    accurate: "आनुवंशिक निर्देश सुरक्षित रहते हैं"
+  })
+};
+
+export const keyConceptsByLanguage: Record<ContentLanguage, string[]> = {
+  English: featuredLesson.keyConcepts,
+  Kannada: [
+    "ಅರ್ಧ-ಸಂರಕ್ಷಿತ ನಕಲು",
+    "ಬೇಸ್ ಜೋಡಿ",
+    "ಡಿಎನ್‌ಎ ಪಾಲಿಮರೇಸ್",
+    "ಹೆಲಿಕೇಸ್",
+    "ನಿಖರ ಆನುವಂಶಿಕ ಸೂಚನೆಗಳು"
+  ],
+  Hindi: [
+    "अर्ध-संरक्षी नकल",
+    "बेस युग्मन",
+    "डीएनए पॉलीमरेज़",
+    "हेलिकेस",
+    "सटीक आनुवंशिक निर्देश"
   ]
 };
 

@@ -23,9 +23,9 @@ import { ReadingModeControls } from "@/components/reading/reading-mode-controls"
 import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
-import { featuredLesson } from "@/lib/demo-data";
+import { featuredLesson, keyConceptsByLanguage, mindMapsByLanguage } from "@/lib/demo-data";
 import { getReadingFontLabel } from "@/lib/reading-mode";
-import type { LearningMode, MindMapNode } from "@/lib/types";
+import type { ContentLanguage, LearningMode, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const modes: LearningMode[] = ["Original", "Simplified", "Focus", "Audio", "Visual"];
@@ -58,9 +58,25 @@ type TranslatedContent = Partial<Record<LearningMode, string>>;
 
 function stringifyResult(result: unknown) {
   if (typeof result === "string") return result;
+  if (result && typeof result === "object" && "text" in result && typeof (result as { text?: unknown }).text === "string") {
+    return (result as { text: string }).text;
+  }
   if (Array.isArray(result)) return result.map((item, index) => `Step ${index + 1}: ${String(item)}`).join("\n\n");
   if (result && typeof result === "object") return JSON.stringify(result, null, 2);
   return "";
+}
+
+function mindMapFromResult(result: unknown): MindMapNode | null {
+  if (!result || typeof result !== "object") return null;
+  if ("mindMap" in result && isMindMap((result as { mindMap: unknown }).mindMap)) {
+    return (result as { mindMap: MindMapNode }).mindMap;
+  }
+  if (isMindMap(result)) return result;
+  return null;
+}
+
+function isMindMap(value: unknown): value is MindMapNode {
+  return Boolean(value && typeof value === "object" && "id" in value && "label" in value);
 }
 
 export function LearningWorkspace() {
@@ -70,24 +86,22 @@ export function LearningWorkspace() {
   const [material, setMaterial] = useState<Material | null>(null);
   const [mindMap, setMindMap] = useState<MindMapNode>(featuredLesson.mindMap);
   const [status, setStatus] = useState("Demo lesson loaded.");
-  const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
+  const [language, setLanguage] = useState<ContentLanguage>("English");
   const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
   const [imageResult, setImageResult] = useState<string | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
   const displayedText = translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted);
+  const focusConcepts = keyConceptsByLanguage[language] ?? featuredLesson.keyConcepts;
   const readingTransform = materialTitle.toLowerCase().includes("photosynthesis")
     ? "Photosynthesis\n\nPlants use sunlight to make food.\n\nMain idea:\nSUNLIGHT\nPLANT\nFOOD"
     : `${materialTitle}\n\nA cell copies its DNA before it divides.\n\nMain idea:\nDNA OPENS\nMATCHING BASES JOIN\nTWO COPIES FORM`;
 
   function contentForMode(learningMode: LearningMode) {
     if (learningMode === "Original") return sourceText;
-    if (learningMode === "Focus") return featuredLesson.keyConcepts.join("\n");
-    if (learningMode === "Visual") {
-      const labels = (node: MindMapNode): string[] => [node.label, ...(node.children?.flatMap(labels) ?? [])];
-      return labels(mindMap).join("\n");
-    }
+    if (learningMode === "Focus") return focusConcepts.join("\n");
+    if (learningMode === "Visual" || learningMode === "Audio") return adapted;
     return adapted;
   }
 
@@ -156,6 +170,7 @@ export function LearningWorkspace() {
           action: apiAction,
           text: action === "Translate" ? contentForMode(mode) : sourceText,
           language: nextLanguage,
+          mind_map: mindMap,
           material_id: material?.id,
           save_as_note: false
         })
@@ -164,8 +179,17 @@ export function LearningWorkspace() {
       if (!response.ok) throw new Error(payload.error?.message ?? "Adaptation failed.");
 
       if (apiAction === "translate") {
+        const translatedText = stringifyResult(payload.result);
         setLanguage(nextLanguage);
-        setTranslatedContent((current) => ({ ...current, [mode]: stringifyResult(payload.result) }));
+        setTranslatedContent((current) => ({
+          ...current,
+          Simplified: translatedText,
+          ...(mode === "Original" || mode === "Focus" || mode === "Audio" ? { [mode]: translatedText } : {})
+        }));
+        setAdapted(translatedText);
+        const translatedMap = mindMapFromResult(payload.result) ?? mindMapsByLanguage[nextLanguage];
+        setMindMap(translatedMap);
+        setStatus(`Translated to ${nextLanguage}. Visual mode keeps the same concept-map layout.`);
       } else if (apiAction === "mind-map" && payload.result && typeof payload.result === "object" && "label" in payload.result) {
         setMindMap(payload.result as MindMapNode);
         setMode("Visual");
@@ -173,7 +197,7 @@ export function LearningWorkspace() {
         setAdapted(stringifyResult(payload.result));
         setMode("Simplified");
       }
-      setStatus(`${action} complete.`);
+      if (apiAction !== "translate") setStatus(`${action} complete.`);
       void fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -296,7 +320,7 @@ export function LearningWorkspace() {
           </div>
           {mode === "Focus" ? (
             <div className="mt-5">
-              <FocusMode concepts={featuredLesson.keyConcepts} explanation={translatedContent.Focus} />
+              <FocusMode concepts={focusConcepts} explanation={translatedContent.Focus} />
             </div>
           ) : mode === "Audio" ? (
             <div className="mt-5">
@@ -304,12 +328,7 @@ export function LearningWorkspace() {
             </div>
           ) : mode === "Visual" ? (
             <div className="mt-5">
-              {translatedContent.Visual && (
-                <p className="mb-4 whitespace-pre-line rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
-                  {translatedContent.Visual}
-                </p>
-              )}
-              <MindMap node={mindMap} />
+              <MindMap key={`${language}-${mindMap.id}`} node={mindMap} language={language} />
             </div>
           ) : (
             <div className="mt-5 rounded-card bg-paper p-5 text-xl leading-10 text-ink">

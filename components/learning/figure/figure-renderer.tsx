@@ -233,95 +233,130 @@ function CycleDiagram({ spec }: { spec: FigureSpec }) {
 }
 
 // ─── CONCEPT MAP ─────────────────────────────────────────────────────────────
-function ConceptMap({ spec }: { spec: FigureSpec }) {
-  const svgW = 480;
-  const nodeH = 44;
-  const nodeW = 160;
-  const centerX = svgW / 2;
-  const rootY = 30;
-  const childGapY = 90;
+const MAP_PALETTE = [
+  { ink: "#2F6B57", wash: "#E7F6F0", glow: "#53BFA5" },
+  { ink: "#3D6FB8", wash: "#E8F1FB", glow: "#5A8FD8" },
+  { ink: "#C45C50", wash: "#FBECEA", glow: "#E76F61" },
+  { ink: "#B07A1A", wash: "#FBF3E0", glow: "#F2B84B" }
+];
 
-  // Root = first node; children = rest
+function ConceptMap({ spec }: { spec: FigureSpec }) {
   const [root, ...children] = spec.nodes;
-  const totalH = children.length > 0 ? rootY + nodeH + childGapY + nodeH + 30 : rootY + nodeH + 30;
+  const nodeH = 50;
+  const nodeW = 150;
+  const rootW = 180;
+  const rootY = 28;
+  const childY = 150;
+  const gap = 18;
+  const svgW = Math.max(480, children.length * (nodeW + gap) + 40);
+  const centerX = svgW / 2;
+  const totalH = children.length > 0 ? childY + nodeH + 36 : rootY + nodeH + 36;
 
   const childXPositions = children.map((_, i) => {
-    const spread = (children.length - 1) * 170;
-    return centerX - spread / 2 + i * 170;
+    const spread = (children.length - 1) * (nodeW + gap);
+    return centerX - spread / 2 + i * (nodeW + gap);
   });
 
   return (
     <svg
-      viewBox={`0 0 ${svgW} ${Math.max(totalH, 200)}`}
+      viewBox={`0 0 ${svgW} ${Math.max(totalH, 220)}`}
       width="100%"
       role="img"
       aria-label={`Concept map: ${spec.title}`}
-      className="max-h-[400px]"
+      className="max-h-[440px]"
     >
       <title>{spec.title}</title>
       <Defs />
-      {/* Root node */}
+      <defs>
+        <linearGradient id="concept-root" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#142322" />
+          <stop offset="100%" stopColor="#2F6B57" />
+        </linearGradient>
+        <filter id="concept-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#142322" floodOpacity="0.16" />
+        </filter>
+      </defs>
       {root && (
         <>
           <rect
-            x={centerX - nodeW / 2}
+            x={centerX - rootW / 2}
             y={rootY}
-            width={nodeW}
+            width={rootW}
             height={nodeH}
-            rx={8}
-            fill="#142322"
-            stroke="#142322"
-            strokeWidth={1.5}
+            rx={16}
+            fill="url(#concept-root)"
+            filter="url(#concept-shadow)"
           />
-          <text
-            x={centerX}
-            y={rootY + nodeH / 2}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={13}
-            fontWeight={800}
-            fill="#ffffff"
-            fontFamily="inherit"
-          >
-            {root.label.length > 22 ? root.label.slice(0, 19) + "…" : root.label}
-          </text>
+          {wrapText(root.label, 20).map((line, li, lines) => (
+            <text
+              key={li}
+              x={centerX}
+              y={rootY + nodeH / 2 + (li - (lines.length - 1) / 2) * 15}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={13}
+              fontWeight={800}
+              fill="#ffffff"
+              fontFamily="inherit"
+            >
+              {line}
+            </text>
+          ))}
         </>
       )}
 
       {children.map((child, i) => {
         const cx = childXPositions[i] ?? centerX;
-        const cy = rootY + nodeH + childGapY;
-        const lines = wrapText(child.label, 18);
+        const color = MAP_PALETTE[i % MAP_PALETTE.length]!;
+        const lines = wrapText(child.label, 16);
+        const rel = spec.relationships.find((r) => r.to === child.id || (r.from === root?.id && r.to === child.id));
+        const x1 = centerX;
+        const y1 = rootY + nodeH;
+        const x2 = cx;
+        const y2 = childY;
+        const midY = (y1 + y2) / 2;
         return (
           <g key={child.id}>
-            <line
-              x1={centerX}
-              y1={rootY + nodeH}
-              x2={cx}
-              y2={cy}
-              stroke={ARROW_COLOR}
-              strokeWidth={1.5}
-              markerEnd="url(#ttf-arrow)"
+            <path
+              d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
+              fill="none"
+              stroke={color.glow}
+              strokeWidth={2.4}
+              strokeLinecap="round"
             />
+            {rel?.label && (
+              <text
+                x={(x1 + x2) / 2}
+                y={midY - 4}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={700}
+                fill={color.ink}
+                fontFamily="inherit"
+              >
+                {rel.label}
+              </text>
+            )}
             <rect
               x={cx - nodeW / 2}
-              y={cy}
+              y={childY}
               width={nodeW}
               height={nodeH}
-              rx={8}
-              fill={NODE_FILL}
-              stroke={NODE_STROKE}
-              strokeWidth={1.5}
+              rx={14}
+              fill={color.wash}
+              stroke={color.ink}
+              strokeWidth={1.4}
+              filter="url(#concept-shadow)"
             />
             {lines.map((line, li) => (
               <text
                 key={li}
                 x={cx}
-                y={cy + nodeH / 2 + (li - (lines.length - 1) / 2) * 15}
+                y={childY + nodeH / 2 + (li - (lines.length - 1) / 2) * 14}
                 textAnchor="middle"
                 dominantBaseline="central"
                 fontSize={12}
-                fontWeight={600}
+                fontWeight={700}
                 fill={TEXT_COLOR}
                 fontFamily="inherit"
               >

@@ -1,8 +1,7 @@
-import { featuredLesson } from "@/lib/demo-data";
-import type { AccessibilitySupport, MindMapNode } from "@/lib/types";
+import { featuredLesson, mindMapsByLanguage } from "@/lib/demo-data";
+import type { AccessibilitySupport, ContentLanguage, MindMapNode } from "@/lib/types";
 
 type Level = "simple" | "very-simple" | "new";
-type Language = "English" | "Kannada" | "Hindi";
 
 const delay = (ms = 360) =>
   new Promise((resolve) => {
@@ -91,27 +90,80 @@ export async function explainStepByStep(input = featuredLesson.original) {
     .filter(Boolean);
 }
 
-export async function generateMindMap(input = featuredLesson.original): Promise<MindMapNode> {
+export async function generateMindMap(
+  input = featuredLesson.original,
+  language: ContentLanguage = "English"
+): Promise<MindMapNode> {
+  const fallback = mindMapsByLanguage[language] ?? featuredLesson.mindMap;
   if (!process.env.OPENAI_API_KEY) {
     await delay();
-    return featuredLesson.mindMap;
+    return fallback;
   }
   const result = await callOpenAI(
-    "Create a compact text mind map for the educational concept. Return concise branches only.",
+    `Create a compact educational concept map. Return ONLY valid JSON with this shape:
+{"id":"root","label":"topic","children":[{"id":"b1","label":"branch","children":[{"id":"l1","label":"leaf"}]}]}
+Rules:
+- Write every label in ${language}
+- Keep the same branching structure for any language (one root, 2-4 branches, each with 1-3 children)
+- Labels must be short (under 40 characters)
+- No markdown fences`,
     input,
     ""
   );
-  return result
-    ? {
-        id: "ai-map",
-        label: "Generated Map",
-        children: result
-          .split(/\n+/)
-          .filter(Boolean)
-          .slice(0, 6)
-          .map((line, index) => ({ id: `node-${index}`, label: line.replace(/^[-*]\s*/, "") }))
-      }
-    : featuredLesson.mindMap;
+  const parsed = parseMindMapJson(result);
+  return parsed ?? fallback;
+}
+
+function parseMindMapJson(raw: string): MindMapNode | null {
+  if (!raw) return null;
+  try {
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(cleaned) as MindMapNode;
+    if (!parsed?.id || !parsed?.label) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function collectLabels(node: MindMapNode): { id: string; label: string }[] {
+  return [{ id: node.id, label: node.label }, ...(node.children?.flatMap(collectLabels) ?? [])];
+}
+
+function applyTranslatedLabels(node: MindMapNode, labels: Record<string, string>): MindMapNode {
+  return {
+    ...node,
+    label: labels[node.id] ?? node.label,
+    children: node.children?.map((child) => applyTranslatedLabels(child, labels))
+  };
+}
+
+export async function translateMindMap(language: ContentLanguage, node: MindMapNode): Promise<MindMapNode> {
+  const demoIds = new Set(collectLabels(featuredLesson.mindMap).map((item) => item.id));
+  const incomingIds = collectLabels(node).map((item) => item.id);
+  const isDemoTree = incomingIds.length === demoIds.size && incomingIds.every((id) => demoIds.has(id));
+  if (isDemoTree) {
+    await delay();
+    return mindMapsByLanguage[language];
+  }
+
+  const labels = collectLabels(node);
+  const result = await callOpenAI(
+    `Translate each mind-map label into ${language}. Keep scientific terms readable for learners.
+Return ONLY JSON: {"id":"translated label", ...} using the same ids.
+Do not change the number of nodes or invent new ids.`,
+    JSON.stringify(Object.fromEntries(labels.map((item) => [item.id, item.label]))),
+    ""
+  );
+
+  if (!result) return isDemoTree ? mindMapsByLanguage[language] : node;
+  try {
+    const cleaned = result.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const map = JSON.parse(cleaned) as Record<string, string>;
+    return applyTranslatedLabels(node, map);
+  } catch {
+    return node;
+  }
 }
 
 export async function generateQuiz(input = featuredLesson.original) {
@@ -129,18 +181,26 @@ export async function generateQuiz(input = featuredLesson.original) {
     .map((block) => ({ question: block.split("\n")[0] ?? block, answer: block.split("\n").slice(1).join(" ") || "Review the concept in the adapted lesson." }));
 }
 
-export async function translateContent(language: Language, input = featuredLesson.simplified) {
-  await delay();
-  if (language === "Kannada") {
-    return "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ ಎಂದರೆ ಕೋಶ ವಿಭಜನೆಯಾಗುವ ಮೊದಲು ಡಿಎನ್‌ಎಯ ಒಂದು ಪ್ರತಿಯನ್ನು ತಯಾರಿಸುವ ಪ್ರಕ್ರಿಯೆ. ಡಿಎನ್‌ಎ ಜಿಪ್ಪರ್‌ನಂತೆ ತೆರೆಯುತ್ತದೆ, ನಂತರ ಹೊಸ ಹೊಂದಾಣಿಕೆಯ ಸರಪಳಿಗಳು ನಿರ್ಮಾಣವಾಗುತ್ತವೆ.";
+export async function translateContent(language: ContentLanguage, input = featuredLesson.simplified) {
+  if (language === "English") {
+    return callOpenAI(`Keep the content in English. Clarify wording without adding new facts.`, input, input);
   }
-  if (language === "Hindi") {
-    return "डीएनए प्रतिकृति वह प्रक्रिया है जिसमें कोशिका विभाजन से पहले डीएनए की एक प्रति बनाती है। डीएनए ज़िप की तरह खुलता है और फिर नई मिलान वाली श्रृंखलाएँ बनती हैं।";
-  }
+
+  const demoFallback =
+    language === "Kannada"
+      ? "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ ಎಂದರೆ ಕೋಶ ವಿಭಜನೆಯಾಗುವ ಮೊದಲು ಡಿಎನ್‌ಎಯ ಒಂದು ಪ್ರತಿಯನ್ನು ತಯಾರಿಸುವ ಪ್ರಕ್ರಿಯೆ. ಡಿಎನ್‌ಎ ಜಿಪ್ಪರ್‌ನಂತೆ ತೆರೆಯುತ್ತದೆ, ನಂತರ ಹೊಸ ಹೊಂದಾಣಿಕೆಯ ಸರಪಳಿಗಳು ನಿರ್ಮಾಣವಾಗುತ್ತವೆ."
+      : "डीएनए प्रतिकृति वह प्रक्रिया है जिसमें कोशिका विभाजन से पहले डीएनए की एक प्रति बनाती है। डीएनए ज़िप की तरह खुलता है और फिर नई मिलान वाली श्रृंखलाएँ बनती हैं।";
+
+  const usesDemoLesson =
+    input.includes("DNA replication") ||
+    input.includes("DNA Replication") ||
+    input === featuredLesson.simplified ||
+    input === featuredLesson.original;
+
   return callOpenAI(
-    `Translate the content into ${language}. Keep terms clear for a learner.`,
+    `Translate the educational content into ${language}. Keep scientific terms clear for a learner. Preserve paragraph and line breaks. Do not add new facts.`,
     input,
-    input
+    usesDemoLesson ? demoFallback : input
   );
 }
 

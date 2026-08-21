@@ -70,6 +70,13 @@ export const adaptPayloadSchema = z.object({
   level: z.enum(["simple", "very-simple", "new"]).default("simple"),
   language: languageSchema.default("English"),
   question: z.string().max(500).optional(),
+  mind_map: z
+    .object({
+      id: z.string(),
+      label: z.string(),
+      children: z.array(z.any()).optional()
+    })
+    .optional(),
   material_id: z.string().uuid().optional().nullable(),
   save_as_note: z.boolean().default(false)
 });
