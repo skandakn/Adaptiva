@@ -29,6 +29,31 @@ type SpeechRecognitionLike = {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
+const adaptiveModes = {
+  simple: {
+    label: "Simple words",
+    title: "Simple explanation",
+    text: "DNA is like an instruction manual for living cells. Before a cell divides, DNA makes a copy of itself."
+  },
+  steps: {
+    label: "Step-by-step",
+    title: "Step-by-step explanation",
+    steps: [
+      "DNA opens into two strands.",
+      "Each strand is used as a template.",
+      "New matching strands are created.",
+      "Two copies of DNA are formed."
+    ]
+  },
+  visual: {
+    label: "Visual",
+    title: "Visual explanation",
+    text: "🧬 DNA → 🔓 DNA opens → 🧩 New strands are built → 🧬 Two DNA copies"
+  }
+} as const;
+
+type AdaptiveMode = keyof typeof adaptiveModes;
+
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
@@ -41,6 +66,7 @@ export function LiveTranscript() {
   const [transcript, setTranscript] = useState(featuredLesson.transcript[0].text);
   const [noteSaved, setNoteSaved] = useState(false);
   const [message, setMessage] = useState("Ready for microphone or demo mode.");
+  const [adaptiveMode, setAdaptiveMode] = useState<AdaptiveMode>("simple");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
@@ -164,7 +190,7 @@ export function LiveTranscript() {
         <div className="mt-5 space-y-4">
           <NoteBlock title="Simple explanation" body="DNA is like an instruction manual for living cells. Replication makes a clean copy before the cell divides." />
           <NoteBlock title="Important terms" body="DNA, chromosome, gene, helicase, DNA polymerase." />
-          <NoteBlock title="Adaptive suggestion" body="This concept may need another explanation. Try a visual explanation or step-by-step mode." />
+          <AdaptiveExplanation mode={adaptiveMode} onModeChange={setAdaptiveMode} />
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button type="button" variant="secondary" onClick={() => setTranscript(featuredLesson.simplified)}>
@@ -181,6 +207,73 @@ export function LiveTranscript() {
         </p>
       </Panel>
     </div>
+  );
+}
+
+function AdaptiveExplanation({
+  mode,
+  onModeChange
+}: {
+  mode: AdaptiveMode;
+  onModeChange: (mode: AdaptiveMode) => void;
+}) {
+  const explanation = adaptiveModes[mode];
+
+  return (
+    <section className="rounded-card bg-paper p-4">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Adaptive explanation</p>
+      <h3 className="mt-2 font-black text-ink">This concept may be difficult</h3>
+      <p className="mt-3 inline-flex rounded-card bg-coral/14 px-3 py-2 text-sm font-black text-coral">
+        ⚠ Complex concept detected
+      </p>
+      <p className="mt-3 text-sm leading-7 text-graphite">
+        DNA replication contains several technical terms. Adaptiva recommends changing the explanation style.
+      </p>
+
+      <div className="mt-4 rounded-card border border-ink/10 bg-white p-4">
+        <h4 className="font-black text-ink">🧠 Why did Adaptiva adapt this?</h4>
+        <p className="mt-2 text-sm leading-7 text-graphite">
+          This topic contains unfamiliar scientific terms, so Adaptiva is offering simpler ways to understand it.
+        </p>
+      </div>
+
+      <fieldset className="mt-4">
+        <legend className="font-black text-ink">How would you like to learn it?</legend>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(Object.keys(adaptiveModes) as AdaptiveMode[]).map((key) => {
+            const selected = mode === key;
+
+            return (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant={selected ? "primary" : "secondary"}
+                aria-pressed={selected}
+                onClick={() => onModeChange(key)}
+                className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                {adaptiveModes[key].label}
+                {selected && <span aria-hidden="true">✓ Selected</span>}
+              </Button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="mt-4 rounded-card border border-ink/10 bg-white p-4" aria-live="polite">
+        <h4 className="font-black text-ink">{explanation.title}</h4>
+        {"steps" in explanation ? (
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-7 text-graphite">
+            {explanation.steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-2 text-sm leading-7 text-graphite">{explanation.text}</p>
+        )}
+      </div>
+    </section>
   );
 }
 
