@@ -18,7 +18,7 @@ export async function POST(
     const spec = await generateFigureSpecification(
       content,
       body.figureType ?? "auto",
-      body.complexity ?? "simple"
+      body.complexity
     );
 
     return ok({ mode: auth.mode, figure: spec });

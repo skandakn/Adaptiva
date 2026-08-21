@@ -155,6 +155,16 @@ function autoSelectFigureType(content: string): FigureType {
   return "process";
 }
 
+function autoSelectComplexity(content: string, figureType: FigureType): FigureComplexity {
+  const sentences = content.split(/[.!?]+/).map((sentence) => sentence.trim()).filter(Boolean);
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+  const conceptSignals = content.match(/\b[A-Z][a-zA-Z]{2,}\b|,|;|\band\b/gi)?.length ?? 0;
+
+  if (figureType === "comparison" && conceptSignals >= 10) return "detailed";
+  if (sentences.length >= 6 || wordCount >= 150) return "detailed";
+  return "simple";
+}
+
 // ─── OpenAI-powered figure generation ────────────────────────────────────────
 
 async function generateWithAI(
@@ -236,13 +246,14 @@ Rules:
 export async function generateFigureSpecification(
   content: string,
   figureType: "auto" | FigureType = "auto",
-  complexity: FigureComplexity = "simple"
+  complexity?: FigureComplexity
 ): Promise<FigureSpec> {
   const resolvedType: FigureType =
     figureType === "auto" ? autoSelectFigureType(content) : figureType;
+  const resolvedComplexity = complexity ?? autoSelectComplexity(content, resolvedType);
 
   // 1. Try OpenAI if available
-  const aiResult = await generateWithAI(content, resolvedType, complexity);
+  const aiResult = await generateWithAI(content, resolvedType, resolvedComplexity);
   if (aiResult) return aiResult;
 
   // 2. Simulate processing delay for demo
@@ -252,11 +263,11 @@ export async function generateFigureSpecification(
   const demo = matchDemo(content);
   if (demo) {
     const cloned = { ...demo, id: uid(), createdAt: new Date().toISOString() };
-    return applyComplexity(cloned, complexity);
+    return applyComplexity(cloned, resolvedComplexity);
   }
 
   // 4. Generic sentence-based fallback
-  return buildGenericFigure(content, complexity);
+  return buildGenericFigure(content, resolvedComplexity);
 }
 
 /** Adjust complexity of an existing FigureSpec without re-generating */

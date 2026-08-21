@@ -4,7 +4,6 @@ import {
   AlertCircle,
   BookOpen,
   ChevronDown,
-  ChevronUp,
   Layers,
   RotateCcw,
   Save,
@@ -20,7 +19,7 @@ import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
 import { demoFigures } from "@/lib/demo-data";
-import type { FigureComplexity, FigureSpec, FigureType } from "@/lib/types";
+import type { FigureSpec, FigureType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // ─── Quick-start examples ────────────────────────────────────────────────────
@@ -31,8 +30,7 @@ const EXAMPLES = [
   { label: "Mitosis vs Meiosis", text: "Mitosis produces two genetically identical daughter cells for growth and repair. Meiosis produces four genetically unique cells used in sexual reproduction. Mitosis involves one division while meiosis involves two divisions, reducing chromosomes from 46 to 23." }
 ];
 
-const FIGURE_TYPE_LABELS: Record<FigureType | "auto", string> = {
-  auto: "Auto-select",
+const FIGURE_TYPE_LABELS: Record<FigureType, string> = {
   process: "Process Diagram",
   flowchart: "Flowchart",
   "concept-map": "Concept Map",
@@ -61,8 +59,6 @@ const STAGE_LABELS: Record<Stage, string> = {
 export function FigureWorkspace({ initialContent }: { initialContent?: string }) {
   const { speak, speech, stopSpeech } = useReadingMode();
   const [content, setContent] = useState(initialContent ?? "");
-  const [figureType, setFigureType] = useState<FigureType | "auto">("auto");
-  const [complexity, setComplexity] = useState<FigureComplexity>("simple");
   const [stage, setStage] = useState<Stage>("idle");
   const [spec, setSpec] = useState<FigureSpec | null>(null);
   const [activeTab, setActiveTab] = useState<"visual" | "text">("visual");
@@ -79,11 +75,10 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
 
   // ── Pipeline simulation with real delay ──────────────────────────────────
   const generate = useCallback(
-    async (overrideContent?: string, overrideComplexity?: FigureComplexity) => {
+    async (overrideContent?: string) => {
       const text = (overrideContent ?? content).trim();
       if (!text) return;
 
-      const targetComplexity = overrideComplexity ?? complexity;
       setSpec(null);
       setSavedStatus(null);
 
@@ -99,8 +94,6 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             content: text,
-            figureType,
-            complexity: targetComplexity,
             save: false
           })
         });
@@ -109,39 +102,30 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
         if (!response.ok || !payload.figure) throw new Error(payload.error?.message ?? "Generation failed.");
 
         setSpec(payload.figure);
-        setComplexity(targetComplexity);
         setActiveTab("visual");
         setStage("done");
       } catch {
         setStage("error");
       }
     },
-    [content, figureType, complexity]
+    [content]
   );
 
   const handleSimplify = () => {
     if (!spec) return;
-    if (complexity === "detailed") {
-      void generate(content, "simple");
-    } else {
-      // Already simple — just slice in-place
-      setSpec((prev) => {
-        if (!prev) return prev;
-        const maxNodes = 4;
-        const keptIds = new Set(prev.nodes.slice(0, maxNodes).map((n) => n.id));
-        return {
-          ...prev,
-          complexity: "simple",
-          nodes: prev.nodes.slice(0, maxNodes),
-          relationships: prev.relationships.filter((r) => keptIds.has(r.from) && keptIds.has(r.to)),
-          explanation: prev.explanation.slice(0, 4)
-        };
-      });
-    }
-  };
-
-  const handleMoreDetail = () => {
-    void generate(content, "detailed");
+    setSpec((prev) => {
+      if (!prev) return prev;
+      const maxNodes = 4;
+      const keptIds = new Set(prev.nodes.slice(0, maxNodes).map((n) => n.id));
+      return {
+        ...prev,
+        complexity: "simple",
+        nodes: prev.nodes.slice(0, maxNodes),
+        relationships: prev.relationships.filter((r) => keptIds.has(r.from) && keptIds.has(r.to)),
+        explanation: prev.explanation.slice(0, 4)
+      };
+    });
+    setActiveTab("text");
   };
 
   const handleRegenerate = () => {
@@ -163,7 +147,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
       const response = await fetch("/api/figure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, figureType, complexity, save: true })
+        body: JSON.stringify({ content, save: true })
       });
       setSavedStatus(response.ok ? "Figure saved." : "Could not save — demo mode active.");
     } catch {
@@ -200,7 +184,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Your content</p>
-            <h2 className="mt-1 text-xl font-black text-ink">Paste educational text</h2>
+            <h2 className="mt-1 text-xl font-black text-ink">Paste educational text or topic</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {EXAMPLES.map((ex) => (
@@ -219,54 +203,21 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
         <textarea
           id="ttf-input"
           className="mt-4 min-h-36 w-full resize-y rounded-card border border-ink/12 bg-paper px-4 py-3 text-base leading-8 text-ink placeholder:text-graphite/60 focus-visible:border-moss focus-visible:outline-none focus-visible:ring-0"
-          placeholder="Explain how photosynthesis works, or paste any educational paragraph…"
+          placeholder="Paste your lesson, paragraph, or topic. Adaptiva will choose the best figure format."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           aria-label="Educational content to convert into a figure"
           rows={5}
         />
 
-        {/* Options row */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label htmlFor="figure-type-select" className="text-sm font-black text-graphite">
-              Figure type:
-            </label>
-            <select
-              id="figure-type-select"
-              value={figureType}
-              onChange={(e) => setFigureType(e.target.value as FigureType | "auto")}
-              className="rounded-card border border-ink/12 bg-white px-3 py-2 text-sm font-bold text-ink focus-visible:outline-none"
-            >
-              {Object.entries(FIGURE_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="complexity-select" className="text-sm font-black text-graphite">
-              Complexity:
-            </label>
-            <select
-              id="complexity-select"
-              value={complexity}
-              onChange={(e) => setComplexity(e.target.value as FigureComplexity)}
-              className="rounded-card border border-ink/12 bg-white px-3 py-2 text-sm font-bold text-ink focus-visible:outline-none"
-            >
-              <option value="simple">Simple (≤6 nodes)</option>
-              <option value="detailed">Detailed (≤12 nodes)</option>
-            </select>
-          </div>
-
+        <div className="mt-4 flex justify-center sm:justify-end">
           <Button
             id="create-figure-btn"
-            className="ml-auto"
             disabled={isGenerating || !content.trim()}
             onClick={() => void generate()}
           >
             <Sparkles aria-hidden="true" size={16} />
-            {isGenerating ? "Generating…" : "✨ Create Figure"}
+            {isGenerating ? "Generating…" : "Create Figure"}
           </Button>
         </div>
       </Panel>
@@ -319,9 +270,6 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
                   </span>
                   <span className="rounded-card bg-paper px-3 py-1 text-xs font-black text-graphite">
                     {spec.topic}
-                  </span>
-                  <span className="rounded-card bg-paper px-3 py-1 text-xs font-black text-graphite capitalize">
-                    {spec.complexity}
                   </span>
                 </div>
               </div>
@@ -393,15 +341,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
                 onClick={handleSimplify}
               >
                 <ChevronDown aria-hidden="true" size={16} />
-                Simplify
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-card border border-ink/10 bg-paper px-3 py-2 text-sm font-black text-ink transition hover:border-moss/40 hover:bg-cloud"
-                onClick={handleMoreDetail}
-              >
-                <ChevronUp aria-hidden="true" size={16} />
-                More Detail
+                Explain Simply
               </button>
               <button
                 type="button"
@@ -409,7 +349,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
                 onClick={() => setActiveTab("text")}
               >
                 <BookOpen aria-hidden="true" size={16} />
-                Explain Step-by-Step
+                Step-by-Step
               </button>
               <button
                 type="button"

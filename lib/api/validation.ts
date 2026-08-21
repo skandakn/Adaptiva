@@ -119,13 +119,14 @@ export const figureTypeSchema = z.enum([
 
 export const figurePayloadSchema = z.object({
   content: z.string().min(1).max(20000),
-  figureType: figureTypeSchema.default("auto"),
-  complexity: z.enum(["simple", "detailed"]).default("simple"),
+  figureType: figureTypeSchema.optional().default("auto"),
+  complexity: z.enum(["simple", "detailed"]).optional(),
   material_id: z.string().uuid().optional().nullable(),
   save: z.boolean().default(false)
 });
 
 export const figureRegenerateSchema = z.object({
+  content: z.string().min(1).max(20000).optional(),
   complexity: z.enum(["simple", "detailed"]).optional(),
   figureType: figureTypeSchema.optional()
 });
