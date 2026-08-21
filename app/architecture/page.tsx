@@ -3,12 +3,20 @@ import { Panel } from "@/components/ui/panel";
 
 const privacy = [
   "User data should be encrypted in transit.",
-  "Authentication is required for private content.",
+  "Supabase Auth protects private content when environment variables are configured.",
   "Uploaded documents should not be publicly accessible.",
   "API keys remain server-side through environment variables.",
   "Minimum necessary data collection.",
   "User-controlled deletion.",
   "Accessibility preferences are settings, not diagnoses."
+];
+
+const implementationStatus = [
+  "Supabase Auth integration: implemented, requires Supabase env vars.",
+  "Database persistence: implemented through API routes and RLS migration.",
+  "AI provider: configurable server-side OpenAI Responses API with demo fallback.",
+  "Video transcription: production-ready route shape; demo transcript fallback until a transcription service is configured.",
+  "Local demo mode: active when Supabase is not configured."
 ];
 
 export default function ArchitecturePage() {
@@ -20,6 +28,17 @@ export default function ArchitecturePage() {
         <h2 className="mt-2 text-3xl font-black text-ink">Privacy-conscious architecture</h2>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {privacy.map((item) => (
+            <div key={item} className="rounded-card bg-paper p-4 text-sm font-bold leading-7 text-graphite">
+              {item}
+            </div>
+          ))}
+        </div>
+      </Panel>
+      <Panel className="mt-6">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Implementation Status</p>
+        <h2 className="mt-2 text-3xl font-black text-ink">What is connected now</h2>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {implementationStatus.map((item) => (
             <div key={item} className="rounded-card bg-paper p-4 text-sm font-bold leading-7 text-graphite">
               {item}
             </div>

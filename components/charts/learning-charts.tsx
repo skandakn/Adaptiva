@@ -18,10 +18,21 @@ import { modeUsageData, progressData, teacherInsightData } from "@/lib/demo-data
 
 const palette = ["#2F6B57", "#53BFA5", "#E76F61", "#F2B84B", "#5A8FD8"];
 
-export function ProgressAreaChart() {
+type ProgressChartPoint = {
+  name: string;
+  focus: number;
+  concepts: number;
+};
+
+type ModeUsagePoint = {
+  name: string;
+  value: number;
+};
+
+export function ProgressAreaChart({ data = progressData }: { data?: ProgressChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={progressData} margin={{ left: -20, right: 12, top: 12, bottom: 0 }}>
+      <AreaChart data={data} margin={{ left: -20, right: 12, top: 12, bottom: 0 }}>
         <defs>
           <linearGradient id="focusFill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="5%" stopColor="#53BFA5" stopOpacity={0.45} />
@@ -38,12 +49,12 @@ export function ProgressAreaChart() {
   );
 }
 
-export function ModeUsageChart() {
+export function ModeUsageChart({ data = modeUsageData }: { data?: ModeUsagePoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <PieChart>
-        <Pie data={modeUsageData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
-          {modeUsageData.map((entry, index) => (
+        <Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
+          {data.map((entry, index) => (
             <Cell key={entry.name} fill={palette[index % palette.length]} />
           ))}
         </Pie>

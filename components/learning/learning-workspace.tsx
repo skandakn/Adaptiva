@@ -20,8 +20,7 @@ import { MindMap } from "@/components/learning/mind-map";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
-import type { LearningMode } from "@/lib/types";
-import { simplifyText, translateContent } from "@/lib/ai-service";
+import type { LearningMode, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const modes: LearningMode[] = ["Original", "Simplified", "Focus", "Audio", "Visual"];
@@ -36,42 +35,149 @@ const actions = [
   { label: "Ask AI", icon: MessageCircle }
 ];
 
+type Material = {
+  id: string;
+  title: string;
+  description: string | null;
+  content_type: string;
+  original_content: string;
+};
+
+type AdaptResponse = {
+  result?: unknown;
+  error?: { message?: string };
+};
+
+function stringifyResult(result: unknown) {
+  if (typeof result === "string") return result;
+  if (Array.isArray(result)) return result.map((item, index) => `Step ${index + 1}: ${String(item)}`).join("\n\n");
+  if (result && typeof result === "object") return JSON.stringify(result, null, 2);
+  return "";
+}
+
 export function LearningWorkspace() {
   const [mode, setMode] = useState<LearningMode>("Simplified");
   const [adapted, setAdapted] = useState(featuredLesson.simplified);
+  const [material, setMaterial] = useState<Material | null>(null);
+  const [mindMap, setMindMap] = useState<MindMapNode>(featuredLesson.mindMap);
   const [status, setStatus] = useState("Demo lesson loaded.");
   const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
   const [imageResult, setImageResult] = useState<string | null>(null);
+  const sourceText = material?.original_content ?? featuredLesson.original;
+  const materialTitle = material?.title ?? featuredLesson.title;
+  const courseLabel = material?.description ?? featuredLesson.course;
+
+  useEffect(() => {
+    async function loadMaterial() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const selectedId = params.get("material");
+        const response = await fetch(selectedId ? `/api/materials/${selectedId}` : "/api/materials");
+        const payload = (await response.json()) as {
+          material?: Material;
+          materials?: Material[];
+          mode?: string;
+          error?: { message?: string };
+        };
+        if (!response.ok) throw new Error(payload.error?.message ?? "Could not load material.");
+        const nextMaterial = payload.material ?? payload.materials?.[0] ?? null;
+        if (nextMaterial) {
+          setMaterial(nextMaterial);
+          setAdapted(nextMaterial.original_content);
+          setStatus(payload.mode === "demo" ? "Demo material loaded from API fallback." : "Saved material loaded.");
+        }
+      } catch {
+        setStatus("Using built-in demo lesson because materials could not be loaded.");
+      }
+    }
+
+    void loadMaterial();
+  }, []);
 
   async function runAction(action: string) {
-    setStatus(`${action} is processing in demo mode...`);
-    if (action === "Simplify") {
-      setAdapted(await simplifyText(featuredLesson.original, "simple"));
-      setMode("Simplified");
-    }
-    if (action === "Explain Step-by-Step") {
-      setAdapted(featuredLesson.stepByStep.map((step, index) => `Step ${index + 1}: ${step}`).join("\n\n"));
-      setMode("Simplified");
-    }
+    setStatus(`${action} is processing...`);
+    const actionMap: Record<string, "simplify" | "step-by-step" | "summarize" | "mind-map" | "translate" | "ask"> = {
+      Simplify: "simplify",
+      "Explain Step-by-Step": "step-by-step",
+      Summarize: "summarize",
+      "Create Mind Map": "mind-map",
+      Translate: "translate",
+      "Ask AI": "ask"
+    };
+
+    const apiAction = actionMap[action];
     if (action === "Translate") {
       const nextLanguage = language === "English" ? "Kannada" : language === "Kannada" ? "Hindi" : "English";
       setLanguage(nextLanguage);
-      setAdapted(await translateContent(nextLanguage));
-      setMode("Simplified");
     }
-    if (action === "Create Mind Map") {
-      setMode("Visual");
-    }
+
     if (action === "Read Aloud") {
       setMode("Audio");
+      setStatus("Audio mode ready.");
+      return;
     }
-    if (action === "Ask AI") {
-      setAdapted("Adaptiva noticed this concept may need another explanation.\n\nTry: a simple explanation, an example, a visual explanation, or step-by-step mode.");
+
+    if (!apiAction) {
+      return;
     }
-    if (action === "Summarize") {
-      setAdapted("DNA replication copies genetic instructions before cell division. The DNA opens, matching bases are added, and two complete DNA molecules are created.");
+
+    try {
+      const nextLanguage = action === "Translate" ? (language === "English" ? "Kannada" : language === "Kannada" ? "Hindi" : "English") : language;
+      const response = await fetch("/api/adapt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: apiAction,
+          text: sourceText,
+          language: nextLanguage,
+          material_id: material?.id,
+          save_as_note: false
+        })
+      });
+      const payload = (await response.json()) as AdaptResponse;
+      if (!response.ok) throw new Error(payload.error?.message ?? "Adaptation failed.");
+
+      if (apiAction === "mind-map" && payload.result && typeof payload.result === "object" && "label" in payload.result) {
+        setMindMap(payload.result as MindMapNode);
+        setMode("Visual");
+      } else {
+        setAdapted(stringifyResult(payload.result));
+        setMode("Simplified");
+      }
+      setStatus(`${action} complete.`);
+      void fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          material_id: material?.id,
+          concept: materialTitle,
+          status: "learning",
+          mastery_level: 55,
+          session: { mode: action, duration_seconds: 180, completed: false }
+        })
+      });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Adaptation failed. Demo content remains available.");
     }
-    setStatus(`${action} complete.`);
+  }
+
+  async function saveCurrentNote() {
+    try {
+      const response = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          material_id: material?.id,
+          title: `${materialTitle} - ${mode} note`,
+          content: adapted,
+          note_type: mode.toLowerCase()
+        })
+      });
+      if (!response.ok) throw new Error("Could not save note.");
+      setStatus("Adapted note saved.");
+    } catch {
+      setStatus("Could not save note to persistence. The adapted content remains visible.");
+    }
   }
 
   useEffect(() => {
@@ -88,7 +194,7 @@ export function LearningWorkspace() {
             Same lesson, adapted around the learner.
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-graphite">
-            Featured demo: {featuredLesson.course} / {featuredLesson.title}
+            Featured demo: {courseLabel} / {materialTitle}
           </p>
         </div>
         <Panel className="w-full max-w-sm p-4">
@@ -137,11 +243,11 @@ export function LearningWorkspace() {
               <p className="text-xs font-black uppercase tracking-[0.14em] text-graphite">
                 Original Content
               </p>
-              <h2 className="mt-2 text-2xl font-black text-ink">{featuredLesson.title}</h2>
+              <h2 className="mt-2 text-2xl font-black text-ink">{materialTitle}</h2>
             </div>
             <BookOpen aria-hidden="true" className="text-moss" size={28} />
           </div>
-          <p className="mt-5 text-lg leading-9 text-graphite">{featuredLesson.original}</p>
+          <p className="mt-5 text-lg leading-9 text-graphite">{sourceText}</p>
         </Panel>
         <Panel>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -165,11 +271,11 @@ export function LearningWorkspace() {
             </div>
           ) : mode === "Visual" ? (
             <div className="mt-5">
-              <MindMap node={featuredLesson.mindMap} />
+              <MindMap node={mindMap} />
             </div>
           ) : (
             <div className="mt-5 whitespace-pre-line rounded-card bg-paper p-5 text-xl leading-10 text-ink">
-              {mode === "Original" ? featuredLesson.original : adapted}
+              {mode === "Original" ? sourceText : adapted}
             </div>
           )}
           <p className="mt-4 min-h-6 text-sm font-bold text-moss">{status}</p>
@@ -192,6 +298,11 @@ export function LearningWorkspace() {
               </button>
             );
           })}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button type="button" variant="secondary" onClick={() => void saveCurrentNote()}>
+            Save adapted note
+          </Button>
         </div>
       </section>
 

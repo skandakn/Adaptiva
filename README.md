@@ -2,7 +2,7 @@
 
 Technology that adapts to the way you learn.
 
-Adaptiva is an AI-powered adaptive accessibility platform that transforms educational content according to a learner's accessibility preferences. It supports a full hackathon demo experience without external API keys through realistic demo-mode data.
+Adaptiva is an AI-powered adaptive accessibility platform that transforms educational content according to a learner's accessibility preferences. It supports a full hackathon demo experience without external API keys through realistic demo-mode data, and it can persist real user data with Supabase/PostgreSQL when configured.
 
 ## Run locally
 
@@ -12,6 +12,35 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+## Environment
+
+Copy `.env.example` to `.env.local` and fill in the values you want to use.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_ADAPTIVA_DEMO_MODE=true
+AI_PROVIDER=demo
+AI_MODEL=gpt-4.1-mini
+OPENAI_API_KEY=
+```
+
+Without Supabase variables, local development uses demo fallback persistence. Production should configure Supabase and should not fake authentication.
+
+## Database setup
+
+Run the migration in `supabase/migrations/20260821173000_initial_adaptiva_schema.sql` in your Supabase project.
+
+The migration creates:
+
+- `profiles`
+- `accessibility_preferences`
+- `learning_materials`
+- `learning_sessions`
+- `saved_notes`
+- `progress`
+- Row Level Security policies so users only access their own rows
 
 ## Demo flow
 
@@ -39,6 +68,13 @@ Open `http://localhost:3000`.
 - `/about` problem, solution, and impact
 
 ## Architecture
+
+The app now includes:
+
+- Supabase Auth pages and callback routes
+- Middleware-protected dashboard, learning, settings, progress, and teacher routes when Supabase is configured
+- API routes for profiles, materials, notes, live notes, video processing, dashboard data, progress, and adaptation
+- Demo fallback when Supabase or AI credentials are not configured
 
 The UI calls clean service abstractions in `lib/ai-service.ts`:
 

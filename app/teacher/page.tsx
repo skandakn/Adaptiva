@@ -1,4 +1,5 @@
 import { BookOpen, FileAudio, FileUp, PenLine, Send, Users } from "lucide-react";
+import Link from "next/link";
 import { TeacherInsightChart } from "@/components/charts/learning-charts";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
@@ -23,14 +24,14 @@ export default function TeacherPage() {
         {tools.map((tool) => {
           const Icon = tool.icon;
           return (
-            <button
+            <Link
               key={tool.label}
-              type="button"
+              href="/learn"
               className="min-h-40 rounded-card border border-ink/10 bg-white p-4 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-moss/40"
             >
               <Icon aria-hidden="true" className="text-moss" size={28} />
               <span className="mt-5 block font-black text-ink">{tool.label}</span>
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -41,7 +42,9 @@ export default function TeacherPage() {
           <p className="mt-3 text-sm leading-7 text-graphite">
             Accessibility preferences are treated as user settings, not diagnoses.
           </p>
-          <Button className="mt-5" type="button">Generate class adaptation</Button>
+          <Button className="mt-5" asChild>
+            <Link href="/learn">Generate class adaptation</Link>
+          </Button>
         </Panel>
         <Panel>
           <h2 className="text-2xl font-black text-ink">Most requested explanations</h2>

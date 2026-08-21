@@ -10,6 +10,7 @@ export function VideoAccessibility() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState("Demo transcript is ready.");
   const [saved, setSaved] = useState(false);
+  const [summary, setSummary] = useState(featuredLesson.simplified);
 
   useEffect(() => {
     return () => {
@@ -24,6 +25,36 @@ export function VideoAccessibility() {
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     setVideoUrl(URL.createObjectURL(file));
     setStatus("Video loaded. Demo transcription pipeline is active.");
+  }
+
+  async function processVideo(action: "subtitles" | "simplify" | "save") {
+    try {
+      setStatus("Processing recorded video through backend demo pipeline...");
+      const response = await fetch("/api/video/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "DNA recorded video lesson",
+          transcript: featuredLesson.transcript.map((line) => `${line.time} ${line.text}`).join("\n"),
+          save_material: action === "save"
+        })
+      });
+      const payload = (await response.json()) as {
+        summary?: string;
+        transcript?: string;
+        error?: { message?: string };
+      };
+      if (!response.ok) throw new Error(payload.error?.message ?? "Video processing failed.");
+      if (payload.summary) setSummary(payload.summary);
+      if (action === "subtitles") setStatus("Subtitles generated from saved transcript data.");
+      if (action === "simplify") setStatus(payload.summary ?? featuredLesson.simplified);
+      if (action === "save") {
+        setSaved(true);
+        setStatus("Accessible video transcript and summary saved.");
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Video processing is unavailable. Demo transcript remains visible.");
+    }
   }
 
   return (
@@ -79,18 +110,21 @@ export function VideoAccessibility() {
           ))}
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Button type="button" variant="secondary" onClick={() => setStatus("Subtitles generated from demo transcript.")}>
+          <Button type="button" variant="secondary" onClick={() => void processVideo("subtitles")}>
             <Captions aria-hidden="true" size={18} />
             Generate Subtitles
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setStatus(featuredLesson.simplified)}>
+          <Button type="button" variant="secondary" onClick={() => void processVideo("simplify")}>
             <Sparkles aria-hidden="true" size={18} />
             Simplify
           </Button>
-          <Button type="button" onClick={() => setSaved(true)}>
+          <Button type="button" onClick={() => void processVideo("save")}>
             <Save aria-hidden="true" size={18} />
             Save
           </Button>
+        </div>
+        <div className="mt-5 rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
+          {summary}
         </div>
         <p className="mt-4 min-h-6 text-sm font-bold text-moss">
           {saved ? "Accessible video material saved in demo mode." : "Demo data is clearly separated from real upload flow."}

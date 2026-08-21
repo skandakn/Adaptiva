@@ -1,21 +1,40 @@
 import { CheckCircle2, Headphones, Languages, ListChecks, ScanText } from "lucide-react";
 import { Panel } from "@/components/ui/panel";
 
-const defaults = [
-  { label: "Reading", value: "Dyslexia-friendly", icon: ScanText },
-  { label: "Focus", value: "Reduced distractions", icon: CheckCircle2 },
-  { label: "Explanation", value: "Simple + step-by-step", icon: ListChecks },
-  { label: "Audio", value: "Enabled", icon: Headphones },
-  { label: "Language", value: "English", icon: Languages }
-];
+type ProfileCardData = {
+  reading_style?: string;
+  focus_mode?: boolean;
+  audio_enabled?: boolean;
+  preferred_language?: string;
+};
+
+type PreferencesCardData = {
+  step_by_step_support?: boolean;
+};
 
 export function AccessibilityProfileCard({
   title = "Adaptive Profile",
-  compact = false
+  compact = false,
+  profile,
+  preferences
 }: {
   title?: string;
   compact?: boolean;
+  profile?: ProfileCardData | null;
+  preferences?: PreferencesCardData | null;
 }) {
+  const defaults = [
+    { label: "Reading", value: profile?.reading_style ?? "Dyslexia-friendly", icon: ScanText },
+    { label: "Focus", value: profile?.focus_mode === false ? "Guided" : "Reduced distractions", icon: CheckCircle2 },
+    {
+      label: "Explanation",
+      value: preferences?.step_by_step_support === false ? "Simple" : "Simple + step-by-step",
+      icon: ListChecks
+    },
+    { label: "Audio", value: profile?.audio_enabled === false ? "Optional" : "Enabled", icon: Headphones },
+    { label: "Language", value: profile?.preferred_language ?? "English", icon: Languages }
+  ];
+
   return (
     <Panel className={compact ? "p-4" : undefined} as="article">
       <div className="flex items-start justify-between gap-4">

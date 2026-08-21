@@ -1,6 +1,7 @@
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import Link from "next/link";
 
 const sections = [
   ["Reading", "Font, font size, spacing, width"],
@@ -27,8 +28,8 @@ export default function SettingsPage() {
           <Panel key={title}>
             <h2 className="text-2xl font-black text-ink">{title}</h2>
             <p className="mt-3 text-sm leading-7 text-graphite">{body}</p>
-            <Button className="mt-5" variant="secondary" type="button">
-              Adjust {title}
+            <Button className="mt-5" variant="secondary" asChild>
+              <Link href="#accessibility-controls">Adjust {title}</Link>
             </Button>
           </Panel>
         ))}

@@ -93,6 +93,26 @@ export function LiveTranscript() {
     setMessage("Listening stopped.");
   }
 
+  async function saveLectureNote() {
+    try {
+      const response = await fetch("/api/live-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "DNA live lecture",
+          transcript,
+          notes: "Key concept: DNA contains genetic information. Simple explanation: DNA is like an instruction manual for living cells.",
+          save_material: true
+        })
+      });
+      if (!response.ok) throw new Error("Save failed");
+      setNoteSaved(true);
+      setMessage("Lecture transcript and accessible notes saved.");
+    } catch {
+      setMessage("Could not save lecture notes to persistence. Transcript remains available.");
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
       <Panel>
@@ -151,7 +171,7 @@ export function LiveTranscript() {
             <Sparkles aria-hidden="true" size={18} />
             Simplify
           </Button>
-          <Button type="button" onClick={() => setNoteSaved(true)}>
+          <Button type="button" onClick={() => void saveLectureNote()}>
             <Save aria-hidden="true" size={18} />
             Save Note
           </Button>

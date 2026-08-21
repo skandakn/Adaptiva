@@ -9,9 +9,13 @@ import { cn } from "@/lib/utils";
 export function AccessibilityToolbar() {
   const [fontSize, setFontSize] = useState(18);
   const [spacing, setSpacing] = useState(1.7);
+  const [letterSpacing, setLetterSpacing] = useState(0.04);
+  const [audioSpeed, setAudioSpeed] = useState(1);
+  const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
   const [contrast, setContrast] = useState(false);
   const [guide, setGuide] = useState(false);
   const [motion, setMotion] = useState(false);
+  const [message, setMessage] = useState("Settings restore automatically when persistence is available.");
 
   useEffect(() => {
     document.body.classList.toggle("high-contrast", contrast);
@@ -21,8 +25,69 @@ export function AccessibilityToolbar() {
     };
   }, [contrast, motion]);
 
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const response = await fetch("/api/profile");
+        const data = (await response.json()) as {
+          profile?: {
+            font_size?: number;
+            line_spacing?: number;
+            letter_spacing?: number;
+            audio_speed?: number;
+            preferred_language?: "English" | "Kannada" | "Hindi";
+            focus_mode?: boolean;
+          };
+          error?: { message?: string };
+        };
+        if (!response.ok) throw new Error(data.error?.message ?? "Could not load settings.");
+        if (data.profile) {
+          setFontSize(data.profile.font_size ?? 18);
+          setSpacing(data.profile.line_spacing ?? 1.7);
+          setLetterSpacing(data.profile.letter_spacing ?? 0.04);
+          setAudioSpeed(data.profile.audio_speed ?? 1);
+          setLanguage(data.profile.preferred_language ?? "English");
+          setGuide(Boolean(data.profile.focus_mode));
+        }
+      } catch {
+        setMessage("Using local demo settings because persistence is unavailable.");
+      }
+    }
+
+    void loadSettings();
+  }, []);
+
+  async function saveSettings() {
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          font_size: fontSize,
+          line_spacing: spacing,
+          letter_spacing: letterSpacing,
+          audio_speed: audioSpeed,
+          preferred_language: language,
+          focus_mode: guide,
+          audio_enabled: true,
+          preferences: {
+            dyslexia_support: true,
+            focus_support: guide,
+            audio_support: true,
+            language_support: language !== "English"
+          }
+        })
+      });
+      if (!response.ok) throw new Error("Save failed");
+      setMessage("Settings saved.");
+    } catch {
+      setMessage("Settings could not be saved to persistence. Demo preview still updated.");
+    }
+  }
+
   return (
     <section
+      id="accessibility-controls"
       className="rounded-card border border-ink/10 bg-white p-4 shadow-soft"
       aria-label="Accessibility controls"
     >
@@ -40,6 +105,9 @@ export function AccessibilityToolbar() {
           onClick={() => {
             setFontSize(18);
             setSpacing(1.7);
+            setLetterSpacing(0.04);
+            setAudioSpeed(1);
+            setLanguage("English");
             setContrast(false);
             setGuide(false);
             setMotion(false);
@@ -47,6 +115,9 @@ export function AccessibilityToolbar() {
         >
           <RotateCcw aria-hidden="true" size={16} />
           Reset
+        </Button>
+        <Button type="button" onClick={() => void saveSettings()}>
+          Save Settings
         </Button>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -83,6 +154,42 @@ export function AccessibilityToolbar() {
             onChange={(event) => setSpacing(Number(event.target.value))}
           />
         </ControlGroup>
+        <ControlGroup label="Letter spacing">
+          <input
+            aria-label="Letter spacing"
+            className="w-full accent-moss"
+            max="0.12"
+            min="0"
+            step="0.01"
+            type="range"
+            value={letterSpacing}
+            onChange={(event) => setLetterSpacing(Number(event.target.value))}
+          />
+        </ControlGroup>
+        <ControlGroup label="Audio speed">
+          <input
+            aria-label="Audio speed"
+            className="w-full accent-moss"
+            max="1.5"
+            min="0.75"
+            step="0.25"
+            type="range"
+            value={audioSpeed}
+            onChange={(event) => setAudioSpeed(Number(event.target.value))}
+          />
+        </ControlGroup>
+        <ControlGroup label="Language">
+          <select
+            aria-label="Preferred language"
+            className="min-h-11 w-full rounded-card border border-ink/10 bg-white px-3 font-black"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value as "English" | "Kannada" | "Hindi")}
+          >
+            <option>English</option>
+            <option>Kannada</option>
+            <option>Hindi</option>
+          </select>
+        </ControlGroup>
         <Toggle active={contrast} icon={Contrast} label="High contrast" onClick={() => setContrast((v) => !v)} />
         <Toggle active={guide} icon={Eye} label="Focus guide" onClick={() => setGuide((v) => !v)} />
         <Toggle active={motion} icon={Volume2} label="Reduced motion" onClick={() => setMotion((v) => !v)} />
@@ -92,12 +199,13 @@ export function AccessibilityToolbar() {
           "mt-4 rounded-card border border-ink/10 bg-paper p-4 text-ink",
           guide && "focus-guide"
         )}
-        style={{ fontSize, lineHeight: spacing }}
+        style={{ fontSize, lineHeight: spacing, letterSpacing: `${letterSpacing}em` }}
       >
         <p className="dyslexia-reading">
           Photo-syn-the-sis is how green plants use LIGHT ENERGY to make CHEMICAL ENERGY.
         </p>
       </div>
+      <p className="mt-3 text-sm font-bold text-moss">{message}</p>
     </section>
   );
 }

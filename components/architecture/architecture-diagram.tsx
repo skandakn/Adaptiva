@@ -56,9 +56,9 @@ export function ArchitectureDiagram() {
           <p className="mt-3 text-lg leading-8 text-graphite">{node.detail}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[
-              { icon: Server, label: "Backend", value: "FastAPI or Node API" },
-              { icon: Database, label: "Database", value: "PostgreSQL/Supabase-ready" },
-              { icon: Sparkles, label: "AI", value: "LLM service abstraction" },
+              { icon: Server, label: "Backend", value: "Next.js API routes" },
+              { icon: Database, label: "Database", value: "Supabase / PostgreSQL" },
+              { icon: Sparkles, label: "AI", value: "Configurable provider + demo fallback" },
               { icon: Lock, label: "Privacy", value: "Server-side keys only" }
             ].map((item) => {
               const Icon = item.icon;
@@ -90,7 +90,7 @@ export function ArchitectureDiagram() {
           </div>
         </Panel>
         <Panel>
-          <h2 className="text-2xl font-black text-ink">Supabase-ready model</h2>
+          <h2 className="text-2xl font-black text-ink">Supabase / PostgreSQL model</h2>
           <pre className="mt-4 max-h-56 overflow-auto rounded-card bg-ink p-4 text-xs leading-6 text-white">
             {supabaseReadySchema}
           </pre>

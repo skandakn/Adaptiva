@@ -3,6 +3,7 @@
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { AccessibilityProfileCard } from "@/components/accessibility/profile-card";
@@ -11,6 +12,7 @@ import type { AccessibilitySupport } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function OnboardingFlow() {
+  const router = useRouter();
   const [selected, setSelected] = useState<AccessibilitySupport[]>([
     "Dyslexia-friendly reading",
     "Focus support",
@@ -18,11 +20,47 @@ export function OnboardingFlow() {
     "Audio learning"
   ]);
   const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   function toggle(option: AccessibilitySupport) {
     setSelected((current) =>
       current.includes(option) ? current.filter((item) => item !== option) : [...current, option]
     );
+  }
+
+  async function saveProfile() {
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reading_style: selected.includes("Dyslexia-friendly reading") ? "Dyslexia-friendly" : "Standard",
+          focus_mode: selected.includes("Focus support"),
+          audio_enabled: selected.includes("Audio learning"),
+          preferred_language: "English",
+          preferences: {
+            dyslexia_support: selected.includes("Dyslexia-friendly reading"),
+            focus_support: selected.includes("Focus support"),
+            audio_support: selected.includes("Audio learning"),
+            visual_support: selected.includes("Visual concept maps"),
+            language_support: selected.includes("Translation support"),
+            step_by_step_support: selected.includes("Step-by-step learning")
+          }
+        })
+      });
+      const data = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) throw new Error(data.error?.message ?? "Could not save profile.");
+      setReady(true);
+      setMessage("Your profile was saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save profile. Demo preview remains available.");
+      setReady(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -65,9 +103,9 @@ export function OnboardingFlow() {
           })}
         </div>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button type="button" onClick={() => setReady(true)}>
+          <Button type="button" onClick={() => void saveProfile()} disabled={saving}>
             <Sparkles aria-hidden="true" size={18} />
-            Create Adaptive Profile
+            {saving ? "Saving Profile" : "Create Adaptive Profile"}
           </Button>
           <Button variant="secondary" asChild>
             <Link href="/dashboard">Use demo profile</Link>
@@ -85,11 +123,10 @@ export function OnboardingFlow() {
               <p className="mt-3 text-sm leading-7 text-graphite">
                 Selected supports: {selected.join(", ")}
               </p>
+              {message ? <p className="mt-3 text-sm font-bold text-moss">{message}</p> : null}
             </Panel>
             <AccessibilityProfileCard />
-            <Button asChild>
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
+            <Button type="button" onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
           </div>
         ) : (
           <AccessibilityProfileCard title="Profile Preview" />

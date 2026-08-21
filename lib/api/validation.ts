@@ -80,3 +80,9 @@ export const liveNoteSchema = z.object({
   notes: z.string().max(50000).optional(),
   save_material: z.boolean().default(true)
 });
+
+export const videoProcessSchema = z.object({
+  title: z.string().min(1).max(160).default("Recorded video lesson"),
+  transcript: z.string().min(1).max(50000).optional(),
+  save_material: z.boolean().default(true)
+});
