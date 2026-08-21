@@ -4,7 +4,7 @@ import { ArrowRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function FocusMode({ concepts }: { concepts: string[] }) {
+export function FocusMode({ concepts, explanation }: { concepts: string[]; explanation?: string }) {
   const [index, setIndex] = useState(0);
   const concept = concepts[index];
 
@@ -24,8 +24,8 @@ export function FocusMode({ concepts }: { concepts: string[] }) {
           />
         </div>
       </div>
-      <p className="mt-6 max-w-2xl text-xl leading-9 text-graphite">
-        This concept is shown by itself so the learner can focus before moving forward.
+      <p className="mt-6 max-w-2xl whitespace-pre-line text-xl leading-9 text-graphite">
+        {explanation ?? "This concept is shown by itself so the learner can focus before moving forward."}
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button type="button" variant="secondary" onClick={() => setIndex(0)}>

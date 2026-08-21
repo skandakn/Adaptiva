@@ -48,6 +48,8 @@ type AdaptResponse = {
   error?: { message?: string };
 };
 
+type TranslatedContent = Partial<Record<LearningMode, string>>;
+
 function stringifyResult(result: unknown) {
   if (typeof result === "string") return result;
   if (Array.isArray(result)) return result.map((item, index) => `Step ${index + 1}: ${String(item)}`).join("\n\n");
@@ -62,10 +64,21 @@ export function LearningWorkspace() {
   const [mindMap, setMindMap] = useState<MindMapNode>(featuredLesson.mindMap);
   const [status, setStatus] = useState("Demo lesson loaded.");
   const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
+  const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
   const [imageResult, setImageResult] = useState<string | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
+
+  function contentForMode(learningMode: LearningMode) {
+    if (learningMode === "Original") return sourceText;
+    if (learningMode === "Focus") return featuredLesson.keyConcepts.join("\n");
+    if (learningMode === "Visual") {
+      const labels = (node: MindMapNode): string[] => [node.label, ...(node.children?.flatMap(labels) ?? [])];
+      return labels(mindMap).join("\n");
+    }
+    return adapted;
+  }
 
   useEffect(() => {
     async function loadMaterial() {
@@ -106,11 +119,6 @@ export function LearningWorkspace() {
     };
 
     const apiAction = actionMap[action];
-    if (action === "Translate") {
-      const nextLanguage = language === "English" ? "Kannada" : language === "Kannada" ? "Hindi" : "English";
-      setLanguage(nextLanguage);
-    }
-
     if (action === "Read Aloud") {
       setMode("Audio");
       setStatus("Audio mode ready.");
@@ -128,7 +136,7 @@ export function LearningWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: apiAction,
-          text: sourceText,
+          text: action === "Translate" ? contentForMode(mode) : sourceText,
           language: nextLanguage,
           material_id: material?.id,
           save_as_note: false
@@ -137,7 +145,10 @@ export function LearningWorkspace() {
       const payload = (await response.json()) as AdaptResponse;
       if (!response.ok) throw new Error(payload.error?.message ?? "Adaptation failed.");
 
-      if (apiAction === "mind-map" && payload.result && typeof payload.result === "object" && "label" in payload.result) {
+      if (apiAction === "translate") {
+        setLanguage(nextLanguage);
+        setTranslatedContent((current) => ({ ...current, [mode]: stringifyResult(payload.result) }));
+      } else if (apiAction === "mind-map" && payload.result && typeof payload.result === "object" && "label" in payload.result) {
         setMindMap(payload.result as MindMapNode);
         setMode("Visual");
       } else {
@@ -263,19 +274,24 @@ export function LearningWorkspace() {
           </div>
           {mode === "Focus" ? (
             <div className="mt-5">
-              <FocusMode concepts={featuredLesson.keyConcepts} />
+              <FocusMode concepts={featuredLesson.keyConcepts} explanation={translatedContent.Focus} />
             </div>
           ) : mode === "Audio" ? (
             <div className="mt-5">
-              <AudioPlayer text={adapted} />
+              <AudioPlayer text={translatedContent.Audio ?? adapted} />
             </div>
           ) : mode === "Visual" ? (
             <div className="mt-5">
+              {translatedContent.Visual && (
+                <p className="mb-4 whitespace-pre-line rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
+                  {translatedContent.Visual}
+                </p>
+              )}
               <MindMap node={mindMap} />
             </div>
           ) : (
             <div className="mt-5 whitespace-pre-line rounded-card bg-paper p-5 text-xl leading-10 text-ink">
-              {mode === "Original" ? sourceText : adapted}
+              {translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted)}
             </div>
           )}
           <p className="mt-4 min-h-6 text-sm font-bold text-moss">{status}</p>
