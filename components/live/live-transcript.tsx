@@ -84,6 +84,33 @@ const liveLanguages: Array<{ label: ContentLanguage; locale: string; demoTranscr
   }
 ];
 
+function detectLanguageFromText(text: string): ContentLanguage {
+  if (/[\u0C80-\u0CFF]/.test(text)) return "Kannada";
+  if (/[\u0900-\u097F]/.test(text)) return "Hindi";
+  return "English";
+}
+
+function languageCode(language: ContentLanguage) {
+  if (language === "Kannada") return "kn";
+  if (language === "Hindi") return "hi";
+  return "en";
+}
+
+function browserSpeechLocale() {
+  if (typeof navigator === "undefined") return "en-US";
+  const preferred = navigator.languages?.[0] ?? navigator.language;
+  if (preferred?.toLowerCase().startsWith("kn")) return "kn-IN";
+  if (preferred?.toLowerCase().startsWith("hi")) return "hi-IN";
+  return preferred || "en-US";
+}
+
+function demoLanguageFromBrowser(): ContentLanguage {
+  const locale = browserSpeechLocale().toLowerCase();
+  if (locale.startsWith("kn")) return "Kannada";
+  if (locale.startsWith("hi")) return "Hindi";
+  return "English";
+}
+
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
@@ -99,35 +126,30 @@ export function LiveTranscript() {
   const [adaptiveMode, setAdaptiveMode] = useState<AdaptiveMode>("simple");
   const [language, setLanguage] = useState<ContentLanguage>("English");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const liveLanguage = liveLanguages.find((item) => item.label === language) ?? liveLanguages[0];
-  const langCode = language === "Kannada" ? "kn" : language === "Hindi" ? "hi" : "en";
+  const langCode = languageCode(language);
 
   useEffect(() => {
     return () => recognitionRef.current?.stop();
   }, []);
 
-  function changeLanguage(nextLanguage: ContentLanguage) {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-    }
-    const next = liveLanguages.find((item) => item.label === nextLanguage) ?? liveLanguages[0];
-    setLanguage(next.label);
-    setTranscript(next.demoTranscript[0] ?? "");
-    setNoteSaved(false);
-    setMessage(`Ready to listen in ${next.label}.`);
-  }
-
   function start() {
     const SpeechRecognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     setNoteSaved(false);
     if (!SpeechRecognition) {
+      const demoLanguage = demoLanguageFromBrowser();
+      const demo = liveLanguages.find((item) => item.label === demoLanguage) ?? liveLanguages[0];
+      setLanguage(demo.label);
+      setTranscript(demo.demoTranscript[0] ?? "");
       setListening(true);
-      setMessage("Speech recognition is unavailable here, so demo lecture mode is running.");
+      setMessage("Speech recognition is unavailable here, so demo lecture mode is running with automatic language detection.");
       let index = 0;
       const timer = window.setInterval(() => {
         index += 1;
-        setTranscript((current) => `${current} ${liveLanguage.demoTranscript[index % liveLanguage.demoTranscript.length]}`);
+        setTranscript((current) => {
+          const nextText = `${current} ${demo.demoTranscript[index % demo.demoTranscript.length]}`;
+          setLanguage(detectLanguageFromText(nextText));
+          return nextText;
+        });
         if (index > 3) {
           window.clearInterval(timer);
           setListening(false);
@@ -140,12 +162,13 @@ export function LiveTranscript() {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = liveLanguage.locale;
+    recognition.lang = browserSpeechLocale();
     recognition.onresult = (event) => {
       const text = Array.from(event.results)
         .map((result) => result[0].transcript)
         .join(" ");
       setTranscript(text);
+      setLanguage(detectLanguageFromText(text));
     };
     recognition.onerror = () => {
       setListening(false);
@@ -155,7 +178,7 @@ export function LiveTranscript() {
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
-    setMessage(`Listening through the device microphone in ${liveLanguage.label}.`);
+    setMessage("Listening through the device microphone. Language is detected from the transcript.");
   }
 
   function stop() {
@@ -215,22 +238,10 @@ export function LiveTranscript() {
         </div>
         <p className="mt-4 text-sm font-bold text-graphite">{message}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <label className="inline-flex min-h-11 items-center gap-2 rounded-card border border-ink/12 bg-white px-3 py-2 text-sm font-black text-ink shadow-sm">
+          <span className="inline-flex min-h-11 items-center gap-2 rounded-card border border-ink/12 bg-white px-3 py-2 text-sm font-black text-ink shadow-sm">
             <Languages aria-hidden="true" size={18} />
-            <span className="sr-only">Live microphone language</span>
-            <select
-              value={language}
-              onChange={(event) => changeLanguage(event.target.value as ContentLanguage)}
-              className="bg-transparent text-sm font-black outline-none"
-              aria-label="Live microphone language"
-            >
-              {liveLanguages.map((item) => (
-                <option key={item.label} value={item.label}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            Auto: {language}
+          </span>
           <Button type="button" onClick={start} disabled={listening}>
             <Mic aria-hidden="true" size={18} />
             Start Listening
