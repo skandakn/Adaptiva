@@ -65,16 +65,18 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <Link href="/onboarding">Try Adaptiva</Link>
             </Button>
           </div>
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-card border border-ink/10 bg-white text-ink shadow-sm lg:hidden"
-            aria-label={open ? "Close navigation" : "Open navigation"}
-            aria-expanded={open}
-            onClick={() => setOpen((value) => !value)}
-          >
-            {open ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
-          </button>
-          <ReadingModeQuickControl className="lg:hidden" />
+          <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <ReadingModeQuickControl />
+            <button
+              type="button"
+              className="grid size-11 place-items-center rounded-card border border-ink/10 bg-white text-ink shadow-sm"
+              aria-label={open ? "Close navigation" : "Open navigation"}
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+            >
+              {open ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
+            </button>
+          </div>
         </div>
         {open ? (
           <nav

@@ -2,6 +2,7 @@
 
 import { Captions, FileVideo, Save, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
@@ -103,7 +104,7 @@ export function VideoAccessibility() {
           {featuredLesson.transcript.map((line) => (
             <div key={line.time} className="grid grid-cols-[4rem_1fr] gap-3 rounded-card bg-paper p-3">
               <span className="font-black text-moss">{line.time}</span>
-              <p className="text-sm leading-7 text-graphite">{line.text}</p>
+              <ReadingContent className="text-sm leading-7 text-graphite" text={line.text} />
             </div>
           ))}
         </div>
@@ -128,8 +129,8 @@ export function VideoAccessibility() {
             Save
           </Button>
         </div>
-        <div className="mt-5 rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
-          {summary}
+        <div className="mt-5 rounded-card bg-paper p-4">
+          <ReadingContent className="text-sm leading-7 text-graphite" text={summary} />
         </div>
         <p className="mt-4 min-h-6 text-sm font-bold text-moss">
           {saved ? "Accessible video material saved in demo mode." : "Demo data is clearly separated from real upload flow."}

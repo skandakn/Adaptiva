@@ -13,8 +13,10 @@ import {
   ZoomIn,
   ZoomOut
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FigureRenderer } from "@/components/learning/figure/figure-renderer";
+import { ReadingContent } from "@/components/reading/reading-content";
+import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
 import { demoFigures } from "@/lib/demo-data";
@@ -57,15 +59,16 @@ const STAGE_LABELS: Record<Stage, string> = {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export function FigureWorkspace({ initialContent }: { initialContent?: string }) {
+  const { speak, speech, stopSpeech } = useReadingMode();
   const [content, setContent] = useState(initialContent ?? "");
   const [figureType, setFigureType] = useState<FigureType | "auto">("auto");
   const [complexity, setComplexity] = useState<FigureComplexity>("simple");
   const [stage, setStage] = useState<Stage>("idle");
   const [spec, setSpec] = useState<FigureSpec | null>(null);
   const [activeTab, setActiveTab] = useState<"visual" | "text">("visual");
-  const [readingAloud, setReadingAloud] = useState(false);
   const [savedStatus, setSavedStatus] = useState<string | null>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const figureReadText = spec?.explanation.join("\n") ?? "";
+  const readingAloud = Boolean(figureReadText && speech.text === figureReadText.trim() && speech.isSpeaking);
 
   // Pre-populate from query string (coming from /learn workspace)
   useEffect(() => {
@@ -148,17 +151,10 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
   const handleReadFigure = () => {
     if (!spec) return;
     if (readingAloud) {
-      window.speechSynthesis.cancel();
-      setReadingAloud(false);
+      stopSpeech();
       return;
     }
-    const text = spec.explanation.join(" ");
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 0.92;
-    utt.onend = () => setReadingAloud(false);
-    speechRef.current = utt;
-    window.speechSynthesis.speak(utt);
-    setReadingAloud(true);
+    speak(figureReadText);
   };
 
   const handleSave = async () => {
@@ -186,10 +182,10 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
           <h1 className="mt-4 text-balance text-4xl font-black leading-tight text-ink sm:text-5xl">
             Turn complex information into<br />something you can see.
           </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-graphite">
-            Adaptiva transforms educational text into clear, contextual visual explanations.
-            Figures are an additional way to understand concepts — choose whatever works best for you.
-          </p>
+          <ReadingContent
+            className="mt-4 max-w-2xl text-lg leading-8 text-graphite"
+            text="Adaptiva transforms educational text into clear, contextual visual explanations. Figures are an additional way to understand concepts; choose whatever works best for you."
+          />
         </div>
         <Panel className="w-full max-w-xs p-4" as="div">
           <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">AI-generated visualization</p>
@@ -376,13 +372,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
             >
               <div className="rounded-card bg-paper p-5">
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Accessible text explanation</p>
-                <div className="mt-4 space-y-3">
-                  {spec.explanation.map((sentence, i) => (
-                    <p key={i} className="text-base leading-8 text-ink">
-                      {sentence}
-                    </p>
-                  ))}
-                </div>
+                <ReadingContent className="mt-4 text-base leading-8 text-ink" text={figureReadText} />
               </div>
             </div>
 
@@ -463,9 +453,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
               </div>
               <div className="mt-4 rounded-card bg-paper p-3">
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-graphite">Source excerpt</p>
-                <p className="mt-2 text-sm leading-7 text-graphite line-clamp-4">
-                  {spec.sourceText}
-                </p>
+                <ReadingContent className="mt-2 line-clamp-4 text-sm leading-7 text-graphite" text={spec.sourceText} />
               </div>
               <p className="mt-3 text-xs font-bold text-graphite/80">
                 AI-generated visualization — verify against the source material.
@@ -512,7 +500,7 @@ export function FigureWorkspace({ initialContent }: { initialContent?: string })
               <Panel key={card.title} as="div" className="flex flex-col gap-3">
                 <Icon aria-hidden="true" className="text-moss" size={28} />
                 <h3 className="text-xl font-black text-ink">{card.title}</h3>
-                <p className="text-sm leading-7 text-graphite">{card.body}</p>
+                <ReadingContent className="text-sm leading-7 text-graphite" text={card.body} />
               </Panel>
             );
           })}

@@ -105,7 +105,7 @@ export function ReadingModeProvider({ children }: { children: ReactNode }) {
           };
         };
         if (!response.ok || !data.profile) return;
-        if (data.mode === "demo" && loadedLocal) return;
+        if (data.mode === "demo") return;
 
         const enabled = Boolean(data.preferences?.dyslexia_support);
         updatePreferences((current) => ({

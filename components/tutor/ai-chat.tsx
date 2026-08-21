@@ -2,6 +2,7 @@
 
 import { Send, Sparkles } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { featuredLesson, tutorConversation } from "@/lib/demo-data";
@@ -92,7 +93,7 @@ export function AIChat() {
                   Adaptiva
                 </span>
               ) : null}
-              {message.content}
+              <ReadingContent text={message.content} />
             </div>
           </div>
         ))}
