@@ -1,6 +1,6 @@
 import { generateFigureSpecification } from "@/lib/figure-service";
 import { requireApiUser } from "@/lib/api/auth";
-import { fail, handleApiError, ok } from "@/lib/api/http";
+import { handleApiError, ok } from "@/lib/api/http";
 import { figurePayloadSchema } from "@/lib/api/validation";
 import { demoStore } from "@/lib/api/demo-store";
 

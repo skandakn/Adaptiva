@@ -11,9 +11,6 @@ export async function GET(
     if (auth.response) return auth.response;
 
     if (auth.mode === "demo") {
-      const note = auth.userId
-        ? null
-        : null;
       // In demo mode we don't persist, return a not-found
       return fail(`Figure ${id} not found in demo mode.`, 404, "not_found");
     }
