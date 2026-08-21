@@ -33,6 +33,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
       };
       accessibility_preferences: {
         Row: {
@@ -60,6 +61,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["accessibility_preferences"]["Insert"]>;
+        Relationships: [];
       };
       learning_materials: {
         Row: {
@@ -83,6 +85,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["learning_materials"]["Insert"]>;
+        Relationships: [];
       };
       learning_sessions: {
         Row: {
@@ -104,6 +107,7 @@ export type Database = {
           duration_seconds?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["learning_sessions"]["Insert"]>;
+        Relationships: [];
       };
       saved_notes: {
         Row: {
@@ -125,6 +129,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["saved_notes"]["Insert"]>;
+        Relationships: [];
       };
       progress: {
         Row: {
@@ -146,6 +151,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["progress"]["Insert"]>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
