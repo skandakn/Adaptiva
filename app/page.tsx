@@ -8,6 +8,7 @@ import {
   PlaySquare,
   Sparkles
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { AdaptivaPipeline } from "@/components/landing/adaptiva-pipeline";
 import { DemoJourney } from "@/components/landing/demo-journey";
@@ -37,8 +38,27 @@ export default function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-paper">
-        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8">
+        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-start gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:px-8">
           <div>
+            {/* Hero illustration */}
+            <div className="mb-6 flex justify-center lg:justify-start">
+              <div
+                className="relative overflow-hidden rounded-2xl"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 50%, rgba(83,191,165,0.08) 0%, rgba(248,250,247,0.95) 70%)"
+                }}
+              >
+                <Image
+                  src="/hero-illustration.png"
+                  alt="Adaptiva AI transforming content into personalized accessible learning formats"
+                  width={480}
+                  height={480}
+                  className="relative w-full max-w-[360px] lg:max-w-[440px]"
+                  priority
+                  style={{ mixBlendMode: "multiply" }}
+                />
+              </div>
+            </div>
             <Badge>Accessibility & Inclusive Technology</Badge>
             <h1 className="mt-5 text-balance text-6xl font-black leading-[1.02] text-ink sm:text-7xl lg:text-8xl">
               ADAPTIVA
