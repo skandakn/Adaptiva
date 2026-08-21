@@ -1,5 +1,4 @@
 import {
-  ArrowDown,
   Brain,
   CheckCircle2,
   FileText,
@@ -9,9 +8,10 @@ import {
   PlaySquare,
   Sparkles
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import { AdaptivaPipeline } from "@/components/landing/adaptiva-pipeline";
 import { DemoJourney } from "@/components/landing/demo-journey";
+import { ProductShowcase } from "@/components/landing/product-showcase";
 import { ReadingModeShowcase } from "@/components/reading/reading-mode-showcase";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel, SectionHeader } from "@/components/ui/panel";
@@ -82,32 +82,12 @@ export default function HomePage() {
                 ))}
               </div>
             </Panel>
-            <Panel>
-              <Image
-                src="/adaptiva-interface-preview.svg"
-                alt="Adaptiva interface transforming original content into accessible learning modes"
-                width={1200}
-                height={760}
-                className="mb-5 rounded-card border border-ink/10"
-                priority
-              />
-              <div className="grid gap-4">
-                {["Normal Content", "Adaptiva AI", "Personalized Learning Experience"].map((item, index) => (
-                  <div key={item}>
-                    <div className="rounded-card border border-ink/10 bg-paper p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-graphite">
-                        {index === 0 ? "Input" : index === 1 ? "Transformation" : "Output"}
-                      </p>
-                      <p className="mt-2 text-xl font-black text-ink">{item}</p>
-                    </div>
-                    {index < 2 ? <ArrowDown aria-hidden="true" className="mx-auto my-2 text-moss" /> : null}
-                  </div>
-                ))}
-              </div>
-            </Panel>
+            <ProductShowcase />
           </div>
         </div>
       </section>
+
+      <AdaptivaPipeline />
 
       <section className="bg-white py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

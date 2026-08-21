@@ -221,6 +221,52 @@ textarea:focus-visible,
   top: 4.2rem;
 }
 
+/* ─── Adaptiva Pipeline Animations ─────────────────────────────────────── */
+
+@keyframes pipeline-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pipeline-pulse-scale {
+  0%, 100% {
+    box-shadow: 0 10px 24px rgba(20, 35, 34, 0.14);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 14px 36px rgba(83, 191, 165, 0.25);
+    transform: scale(1.025);
+  }
+}
+
+/*
+  Input cards appear first (staggered via --delay).
+  Output cards appear later at a 4s offset.
+  Both hold at 100% opacity; the cycleKey in React resets them by
+  unmounting/remounting the parent div with a new key.
+*/
+.pipeline-card.pipeline-input {
+  animation: pipeline-fade-up 0.55s ease both;
+  animation-delay: var(--delay, 0s);
+}
+
+.pipeline-card.pipeline-output {
+  animation: pipeline-fade-up 0.55s ease both;
+  animation-delay: calc(4s + var(--delay, 0s));
+}
+
+.pipeline-pulse {
+  animation: pipeline-pulse-scale 2.2s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

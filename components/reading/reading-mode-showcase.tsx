@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowDown, Leaf, Volume2, WandSparkles } from "lucide-react";
+import { ArrowDown, Leaf, Map, Volume2, WandSparkles } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReadingContent } from "./reading-content";
@@ -65,7 +66,7 @@ export function ReadingModeShowcase() {
             <Leaf aria-hidden="true" className="text-moss" size={19} />
           </div>
           <ReadingContent className="mt-3 text-base leading-7 text-ink" text={adaptedText} />
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <Button type="button" variant="secondary" onClick={() => speak(adaptedText)}>
               <Volume2 aria-hidden="true" size={16} />
               Listen
@@ -76,6 +77,12 @@ export function ReadingModeShowcase() {
             </Button>
             <Button type="button" variant="secondary">
               Break into steps
+            </Button>
+            <Button variant="secondary" asChild>
+              <Link href="/learn">
+                <Map aria-hidden="true" size={16} />
+                Create Figure
+              </Link>
             </Button>
           </div>
         </div>
