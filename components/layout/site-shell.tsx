@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { LogIn, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,12 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <span className="rounded-card border border-mint/30 bg-mint/12 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-moss">
               Demo Mode
             </span>
+            <Button variant="secondary" asChild>
+              <Link href="/auth/sign-in">
+                <LogIn aria-hidden="true" size={16} />
+                Sign in
+              </Link>
+            </Button>
             <Button asChild>
               <Link href="/onboarding">Try Adaptiva</Link>
             </Button>
@@ -91,6 +97,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <Button className="mt-2" asChild>
                 <Link href="/onboarding" onClick={() => setOpen(false)}>
                   Try Adaptiva
+                </Link>
+              </Button>
+              <Button variant="secondary" asChild>
+                <Link href="/auth/sign-in" onClick={() => setOpen(false)}>
+                  Sign in
                 </Link>
               </Button>
             </div>
