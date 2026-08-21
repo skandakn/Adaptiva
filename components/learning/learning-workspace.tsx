@@ -300,7 +300,7 @@ export function LearningWorkspace() {
             </div>
           ) : mode === "Audio" ? (
             <div className="mt-5">
-              <AudioPlayer text={translatedContent.Audio ?? adapted} />
+              <AudioPlayer text={translatedContent.Audio ?? adapted} language={language} />
             </div>
           ) : mode === "Visual" ? (
             <div className="mt-5">

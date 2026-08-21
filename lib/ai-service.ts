@@ -132,10 +132,10 @@ export async function generateQuiz(input = featuredLesson.original) {
 export async function translateContent(language: Language, input = featuredLesson.simplified) {
   await delay();
   if (language === "Kannada") {
-    return "DNA replication andre cell divide aguva modalu DNA copy maduva prakriye. DNA zipper tara tereyutte, nantara hosa matching side build agutte.";
+    return "ಡಿಎನ್‌ಎ ಪ್ರತಿಕೃತಿ ಎಂದರೆ ಕೋಶ ವಿಭಜನೆಯಾಗುವ ಮೊದಲು ಡಿಎನ್‌ಎಯ ಒಂದು ಪ್ರತಿಯನ್ನು ತಯಾರಿಸುವ ಪ್ರಕ್ರಿಯೆ. ಡಿಎನ್‌ಎ ಜಿಪ್ಪರ್‌ನಂತೆ ತೆರೆಯುತ್ತದೆ, ನಂತರ ಹೊಸ ಹೊಂದಾಣಿಕೆಯ ಸರಪಳಿಗಳು ನಿರ್ಮಾಣವಾಗುತ್ತವೆ.";
   }
   if (language === "Hindi") {
-    return "DNA replication mein cell divide hone se pehle apne DNA ki copy banata hai. DNA zipper ki tarah khulta hai aur nayi matching strand banti hai.";
+    return "डीएनए प्रतिकृति वह प्रक्रिया है जिसमें कोशिका विभाजन से पहले डीएनए की एक प्रति बनाती है। डीएनए ज़िप की तरह खुलता है और फिर नई मिलान वाली श्रृंखलाएँ बनती हैं।";
   }
   return callOpenAI(
     `Translate the content into ${language}. Keep terms clear for a learner.`,
