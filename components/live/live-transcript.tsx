@@ -1,11 +1,12 @@
 "use client";
 
-import { Mic, MicOff, Save, Sparkles } from "lucide-react";
+import { Languages, Mic, MicOff, Save, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
+import type { ContentLanguage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type SpeechRecognitionResultLike = {
@@ -55,6 +56,34 @@ const adaptiveModes = {
 
 type AdaptiveMode = keyof typeof adaptiveModes;
 
+const liveLanguages: Array<{ label: ContentLanguage; locale: string; demoTranscript: string[] }> = [
+  {
+    label: "English",
+    locale: "en-US",
+    demoTranscript: featuredLesson.transcript.map((item) => item.text)
+  },
+  {
+    label: "Kannada",
+    locale: "kn-IN",
+    demoTranscript: [
+      "ಡಿಎನ್‌ಎ ಜೀವಕೋಶಗಳ ಸೂಚನಾ ಪುಸ್ತಕದಂತಿದೆ.",
+      "ಕೋಶ ವಿಭಜನೆಯ ಮೊದಲು ಡಿಎನ್‌ಎ ತನ್ನ ಪ್ರತಿಯನ್ನು ಮಾಡುತ್ತದೆ.",
+      "ಹೆಲಿಕೇಸ್ ಡಿಎನ್‌ಎಯನ್ನು ತೆರೆಯುತ್ತದೆ ಮತ್ತು ಪಾಲಿಮರೇಸ್ ಹೊಸ ಸರಪಳಿಗಳನ್ನು ನಿರ್ಮಿಸುತ್ತದೆ.",
+      "ಕೊನೆಯಲ್ಲಿ ಎರಡು ಒಂದೇ ರೀತಿಯ ಡಿಎನ್‌ಎ ಪ್ರತಿಗಳು ರೂಪುಗೊಳ್ಳುತ್ತವೆ."
+    ]
+  },
+  {
+    label: "Hindi",
+    locale: "hi-IN",
+    demoTranscript: [
+      "डीएनए जीवित कोशिकाओं की निर्देश पुस्तिका जैसा है।",
+      "कोशिका विभाजन से पहले डीएनए अपनी प्रतिलिपि बनाता है।",
+      "हेलिकेस डीएनए को खोलता है और पॉलीमरेज़ नई श्रृंखलाएँ बनाता है।",
+      "अंत में डीएनए की दो समान प्रतियाँ बनती हैं।"
+    ]
+  }
+];
+
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
@@ -68,11 +97,26 @@ export function LiveTranscript() {
   const [noteSaved, setNoteSaved] = useState(false);
   const [message, setMessage] = useState("Ready for microphone or demo mode.");
   const [adaptiveMode, setAdaptiveMode] = useState<AdaptiveMode>("simple");
+  const [language, setLanguage] = useState<ContentLanguage>("English");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const liveLanguage = liveLanguages.find((item) => item.label === language) ?? liveLanguages[0];
+  const langCode = language === "Kannada" ? "kn" : language === "Hindi" ? "hi" : "en";
 
   useEffect(() => {
     return () => recognitionRef.current?.stop();
   }, []);
+
+  function changeLanguage(nextLanguage: ContentLanguage) {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+    }
+    const next = liveLanguages.find((item) => item.label === nextLanguage) ?? liveLanguages[0];
+    setLanguage(next.label);
+    setTranscript(next.demoTranscript[0] ?? "");
+    setNoteSaved(false);
+    setMessage(`Ready to listen in ${next.label}.`);
+  }
 
   function start() {
     const SpeechRecognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -83,7 +127,7 @@ export function LiveTranscript() {
       let index = 0;
       const timer = window.setInterval(() => {
         index += 1;
-        setTranscript((current) => `${current} ${featuredLesson.transcript[index % featuredLesson.transcript.length].text}`);
+        setTranscript((current) => `${current} ${liveLanguage.demoTranscript[index % liveLanguage.demoTranscript.length]}`);
         if (index > 3) {
           window.clearInterval(timer);
           setListening(false);
@@ -96,7 +140,7 @@ export function LiveTranscript() {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = liveLanguage.locale;
     recognition.onresult = (event) => {
       const text = Array.from(event.results)
         .map((result) => result[0].transcript)
@@ -111,7 +155,7 @@ export function LiveTranscript() {
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
-    setMessage("Listening through the device microphone.");
+    setMessage(`Listening through the device microphone in ${liveLanguage.label}.`);
   }
 
   function stop() {
@@ -170,7 +214,23 @@ export function LiveTranscript() {
           </div>
         </div>
         <p className="mt-4 text-sm font-bold text-graphite">{message}</p>
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <label className="inline-flex min-h-11 items-center gap-2 rounded-card border border-ink/12 bg-white px-3 py-2 text-sm font-black text-ink shadow-sm">
+            <Languages aria-hidden="true" size={18} />
+            <span className="sr-only">Live microphone language</span>
+            <select
+              value={language}
+              onChange={(event) => changeLanguage(event.target.value as ContentLanguage)}
+              className="bg-transparent text-sm font-black outline-none"
+              aria-label="Live microphone language"
+            >
+              {liveLanguages.map((item) => (
+                <option key={item.label} value={item.label}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <Button type="button" onClick={start} disabled={listening}>
             <Mic aria-hidden="true" size={18} />
             Start Listening
@@ -182,7 +242,9 @@ export function LiveTranscript() {
         </div>
         <section className="mt-6 rounded-card border border-ink/10 bg-white p-4">
           <h2 className="text-lg font-black text-ink">Live transcript</h2>
-          <ReadingContent className="mt-3 min-h-32 text-lg leading-9 text-graphite" text={transcript} />
+          <div lang={langCode}>
+            <ReadingContent className="mt-3 min-h-32 text-lg leading-9 text-graphite" text={transcript} />
+          </div>
         </section>
       </Panel>
       <Panel>
