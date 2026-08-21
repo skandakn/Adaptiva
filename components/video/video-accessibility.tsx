@@ -7,8 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
 
+type TranscriptSegment = {
+  start: number;
+  text: string;
+};
+
+type VideoProcessPayload = {
+  transcription?: {
+    segments?: TranscriptSegment[];
+  };
+  summary?: string;
+  error?: { message?: string };
+};
+
+function formatTimestamp(seconds: number) {
+  return `${seconds.toFixed(2)}s`;
+}
+
 export function VideoAccessibility() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [status, setStatus] = useState("Demo transcript is ready.");
   const [saved, setSaved] = useState(false);
   const [summary, setSummary] = useState(featuredLesson.simplified);
@@ -24,30 +43,57 @@ export function VideoAccessibility() {
   function handleFile(file: File | undefined) {
     if (!file) return;
     if (videoUrl) URL.revokeObjectURL(videoUrl);
+    setUploadedVideoFile(file);
+    setTranscriptSegments([]);
     setVideoUrl(URL.createObjectURL(file));
     setStatus("Video loaded. Demo transcription pipeline is active.");
+    void transcribeUploadedVideo(file);
+  }
+
+  async function transcribeUploadedVideo(file: File) {
+    try {
+      const formData = new FormData();
+      formData.append("title", "DNA recorded video lesson");
+      formData.append("video", file);
+      formData.append("save_material", "false");
+
+      setStatus("Transcribing uploaded video...");
+      const response = await fetch("/api/video/process", {
+        method: "POST",
+        body: formData
+      });
+      const payload = (await response.json()) as VideoProcessPayload;
+      if (!response.ok) throw new Error(payload.error?.message ?? "Video transcription failed.");
+      setTranscriptSegments(payload.transcription?.segments ?? []);
+      setStatus("Timestamped transcript generated from uploaded video.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Video transcription is unavailable.");
+    }
   }
 
   async function processVideo(action: "subtitles" | "simplify" | "save") {
     try {
+      if (!uploadedVideoFile) {
+        setStatus("Upload a video before processing.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("title", "DNA recorded video lesson");
+      formData.append("video", uploadedVideoFile);
+      formData.append("save_material", String(action === "save"));
+
       setStatus("Processing recorded video through backend demo pipeline...");
       const response = await fetch("/api/video/process", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "DNA recorded video lesson",
-          transcript: featuredLesson.transcript.map((line) => `${line.time} ${line.text}`).join("\n"),
-          save_material: action === "save"
-        })
+        body: formData
       });
-      const payload = (await response.json()) as {
-        summary?: string;
-        transcript?: string;
-        error?: { message?: string };
-      };
+      const payload = (await response.json()) as VideoProcessPayload;
       if (!response.ok) throw new Error(payload.error?.message ?? "Video processing failed.");
+      const segments = payload.transcription?.segments ?? [];
+      setTranscriptSegments(segments);
       if (payload.summary) setSummary(payload.summary);
-      if (action === "subtitles") setStatus("Subtitles generated from saved transcript data.");
+      if (action === "subtitles") setStatus("Timestamped transcript generated from uploaded video.");
       if (action === "simplify") setStatus(payload.summary ?? featuredLesson.simplified);
       if (action === "save") {
         setSaved(true);
@@ -101,12 +147,21 @@ export function VideoAccessibility() {
         <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">AI Video Notes</p>
         <h2 className="mt-2 text-3xl font-black text-ink">Timestamped transcript</h2>
         <div className="mt-5 space-y-3">
-          {featuredLesson.transcript.map((line) => (
-            <div key={line.time} className="grid grid-cols-[4rem_1fr] gap-3 rounded-card bg-paper p-3">
-              <span className="font-black text-moss">{line.time}</span>
-              <ReadingContent className="text-sm leading-7 text-graphite" text={line.text} />
+          {transcriptSegments.length ? (
+            transcriptSegments.map((segment, index) => (
+              <div key={`${segment.start}-${index}`} className="grid grid-cols-[4rem_1fr] gap-3 rounded-card bg-paper p-3">
+                <span className="font-black text-moss">{formatTimestamp(segment.start)}</span>
+                <ReadingContent className="text-sm leading-7 text-graphite" text={segment.text} />
+              </div>
+            ))
+          ) : (
+            <div className="rounded-card bg-paper p-3">
+              <ReadingContent
+                className="text-sm leading-7 text-graphite"
+                text="Upload and process a video to see timestamped transcript segments."
+              />
             </div>
-          ))}
+          )}
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {["Chapter generation", "Simplified explanation", "Concept extraction", "Focus mode"].map((item) => (
