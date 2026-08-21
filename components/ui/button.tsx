@@ -1,12 +1,12 @@
-import Link from "next/link";
-import type { ButtonHTMLAttributes, AnchorHTMLAttributes } from "react";
+import { cloneElement, isValidElement } from "react";
+import type { ButtonHTMLAttributes, ReactElement, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type BaseProps = {
   variant?: "primary" | "secondary" | "quiet" | "danger";
   size?: "sm" | "md" | "lg" | "icon";
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 type ButtonAsButton = BaseProps &
@@ -14,11 +14,10 @@ type ButtonAsButton = BaseProps &
     asChild?: false;
   };
 
-type ButtonAsChild = BaseProps &
-  AnchorHTMLAttributes<HTMLAnchorElement> & {
-    asChild: true;
-    href: string;
-  };
+type ButtonAsChild = Omit<BaseProps, "children"> & {
+  asChild: true;
+  children: ReactElement<{ className?: string }>;
+};
 
 export function Button(props: ButtonAsButton | ButtonAsChild) {
   const {
@@ -44,12 +43,10 @@ export function Button(props: ButtonAsButton | ButtonAsChild) {
     className
   );
 
-  if (asChild) {
-    return (
-      <Link className={classes} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
-        {children}
-      </Link>
-    );
+  if (asChild && isValidElement(children)) {
+    return cloneElement(children, {
+      className: cn(classes, children.props.className)
+    });
   }
 
   return (
