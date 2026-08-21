@@ -130,7 +130,6 @@ export const sampleLessons = [
       "Cellular respiration is how cells release usable energy from food. It happens in steps and gives cells the energy they need to work."
   }
 ];
-
 export const tutorConversation: TutorMessage[] = [
   {
     role: "user",
@@ -199,6 +198,12 @@ export const architectureNodes = [
     detail: "Transforms the same content according to the learner's accessibility profile."
   },
   {
+    id: "ttf",
+    title: "Text-to-Figure Module",
+    detail:
+      "Converts educational text into contextually coherent visual representations. Extracts concepts, detects relationships, selects the appropriate figure type, and renders a deterministic accessible diagram alongside a full text explanation."
+  },
+  {
     id: "personalization",
     title: "Personalization Engine",
     detail:
@@ -207,6 +212,138 @@ export const architectureNodes = [
   {
     id: "experience",
     title: "User Experience",
-    detail: "Delivers text, audio, visual notes, concept maps, quizzes, and adaptive study flows."
+    detail: "Delivers text, audio, visual notes, concept maps, quizzes, figures, and adaptive study flows."
+  }
+];
+
+// ─── Text-to-Figure demo figures ────────────────────────────────────────────
+
+import type { FigureSpec } from "@/lib/types";
+
+export const demoFigures: FigureSpec[] = [
+  {
+    id: "demo-dna-replication",
+    title: "DNA Replication",
+    type: "process",
+    topic: "Biology",
+    complexity: "simple",
+    nodes: [
+      { id: "n1", label: "DNA double helix", detail: "The starting genetic material" },
+      { id: "n2", label: "Strands separate", detail: "Helicase unwinds the helix" },
+      { id: "n3", label: "Complementary bases attach", detail: "DNA polymerase adds matching bases" },
+      { id: "n4", label: "Gaps are sealed", detail: "Ligase joins the fragments" },
+      { id: "n5", label: "Two DNA molecules", detail: "Each with one original and one new strand" }
+    ],
+    relationships: [
+      { from: "n1", to: "n2", label: "Helicase opens" },
+      { from: "n2", to: "n3", label: "Polymerase reads" },
+      { from: "n3", to: "n4", label: "Fragments joined" },
+      { from: "n4", to: "n5", label: "Replication complete" }
+    ],
+    explanation: [
+      "Figure: DNA Replication.",
+      "First, the DNA double helix is the starting material inside the cell.",
+      "Next, helicase unwinds and separates the two strands of the helix.",
+      "Then, DNA polymerase reads each strand and adds complementary matching bases.",
+      "After that, ligase seals any remaining gaps in the new strands.",
+      "Finally, two complete DNA molecules are formed — each containing one original strand and one newly synthesised strand."
+    ],
+    sourceConcepts: ["DNA double helix", "Helicase", "DNA polymerase", "Ligase", "Semi-conservative replication"],
+    sourceText: "DNA replication is a semi-conservative biological process in which the double-stranded DNA molecule unwinds and each original strand serves as a template for the synthesis of a complementary strand.",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "demo-water-cycle",
+    title: "The Water Cycle",
+    type: "cycle",
+    topic: "Earth Science",
+    complexity: "simple",
+    nodes: [
+      { id: "n1", label: "Evaporation", detail: "Sun heats water, turning it to vapour" },
+      { id: "n2", label: "Condensation", detail: "Vapour rises and cools into clouds" },
+      { id: "n3", label: "Precipitation", detail: "Water falls as rain or snow" },
+      { id: "n4", label: "Collection", detail: "Water gathers in oceans, lakes, rivers" }
+    ],
+    relationships: [
+      { from: "n1", to: "n2", label: "Rises and cools" },
+      { from: "n2", to: "n3", label: "Droplets form" },
+      { from: "n3", to: "n4", label: "Runs off or soaks" },
+      { from: "n4", to: "n1", label: "Sun heats again" }
+    ],
+    explanation: [
+      "Figure: The Water Cycle.",
+      "First, the sun heats surface water causing evaporation — water turns to vapour and rises.",
+      "Next, the vapour rises into the atmosphere where it cools and condenses, forming clouds.",
+      "Then, the droplets in clouds grow heavy and fall as precipitation — rain, snow, or hail.",
+      "Finally, water collects in oceans, lakes, and rivers, and the cycle begins again."
+    ],
+    sourceConcepts: ["Evaporation", "Condensation", "Precipitation", "Collection", "Water vapour"],
+    sourceText: "The water cycle describes how water evaporates from surfaces, rises into the atmosphere, condenses into clouds, and falls back as precipitation.",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "demo-photosynthesis",
+    title: "Photosynthesis",
+    type: "process",
+    topic: "Biology",
+    complexity: "simple",
+    nodes: [
+      { id: "n1", label: "Sunlight", detail: "Energy source from the sun" },
+      { id: "n2", label: "Leaf absorbs light", detail: "Chlorophyll captures sunlight" },
+      { id: "n3", label: "Water + CO₂ taken in", detail: "From roots and air stomata" },
+      { id: "n4", label: "Glucose produced", detail: "Food for the plant" },
+      { id: "n5", label: "Oxygen released", detail: "Released into the air" }
+    ],
+    relationships: [
+      { from: "n1", to: "n2", label: "Absorbed by chlorophyll" },
+      { from: "n3", to: "n2", label: "Combined in leaf" },
+      { from: "n2", to: "n4", label: "Chemical reaction" },
+      { from: "n2", to: "n5", label: "By-product" }
+    ],
+    explanation: [
+      "Figure: Photosynthesis.",
+      "First, sunlight provides the energy needed for the process.",
+      "The leaf absorbs this light energy using chlorophyll.",
+      "At the same time, the plant takes in water through its roots and carbon dioxide from the air.",
+      "These ingredients combine in a chemical reaction inside the leaf.",
+      "The reaction produces glucose, which the plant uses for energy and growth.",
+      "Oxygen is released as a by-product into the surrounding air."
+    ],
+    sourceConcepts: ["Sunlight", "Chlorophyll", "Water", "Carbon dioxide", "Glucose", "Oxygen"],
+    sourceText: "Photosynthesis is the process by which plants use sunlight, water and carbon dioxide to produce glucose and oxygen.",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "demo-mitosis-meiosis",
+    title: "Mitosis vs Meiosis",
+    type: "comparison",
+    topic: "Cell Biology",
+    complexity: "simple",
+    leftLabel: "Mitosis",
+    rightLabel: "Meiosis",
+    nodes: [
+      { id: "l1", label: "1 division", side: "left" },
+      { id: "l2", label: "2 daughter cells", side: "left" },
+      { id: "l3", label: "Genetically identical", side: "left" },
+      { id: "l4", label: "46 chromosomes each", side: "left" },
+      { id: "l5", label: "Growth & repair", side: "left" },
+      { id: "r1", label: "2 divisions", side: "right" },
+      { id: "r2", label: "4 daughter cells", side: "right" },
+      { id: "r3", label: "Genetically unique", side: "right" },
+      { id: "r4", label: "23 chromosomes each", side: "right" },
+      { id: "r5", label: "Sexual reproduction", side: "right" }
+    ],
+    relationships: [],
+    explanation: [
+      "Figure: Mitosis versus Meiosis.",
+      "Mitosis involves one division; meiosis involves two divisions.",
+      "Mitosis produces two daughter cells; meiosis produces four.",
+      "Mitosis produces genetically identical cells; meiosis produces genetically unique cells.",
+      "Mitosis preserves 46 chromosomes per cell; meiosis halves this to 23.",
+      "Mitosis is used for growth and tissue repair; meiosis is used for sexual reproduction."
+    ],
+    sourceConcepts: ["Mitosis", "Meiosis", "Cell division", "Chromosomes", "Genetic variation"],
+    sourceText: "Mitosis produces two genetically identical daughter cells for growth and repair. Meiosis produces four genetically unique cells used in sexual reproduction.",
+    createdAt: new Date().toISOString()
   }
 ];

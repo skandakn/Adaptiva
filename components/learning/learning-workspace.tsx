@@ -4,6 +4,7 @@ import {
   BookOpen,
   CheckCircle2,
   FileImage,
+  BarChart2,
   Languages,
   ListChecks,
   Map,
@@ -17,9 +18,13 @@ import { AdaptButton } from "@/components/learning/adapt-button";
 import { AudioPlayer } from "@/components/learning/audio-player";
 import { FocusMode } from "@/components/learning/focus-mode";
 import { MindMap } from "@/components/learning/mind-map";
+import { ReadingContent } from "@/components/reading/reading-content";
+import { ReadingModeControls } from "@/components/reading/reading-mode-controls";
+import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
 import { featuredLesson } from "@/lib/demo-data";
+import { getReadingFontLabel } from "@/lib/reading-mode";
 import type { LearningMode, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +36,7 @@ const actions = [
   { label: "Read Aloud", icon: Volume2 },
   { label: "Summarize", icon: ScanText },
   { label: "Create Mind Map", icon: Map },
+  { label: "Create Figure", icon: BarChart2 },
   { label: "Translate", icon: Languages },
   { label: "Ask AI", icon: MessageCircle }
 ];
@@ -58,6 +64,7 @@ function stringifyResult(result: unknown) {
 }
 
 export function LearningWorkspace() {
+  const { preferences, speak } = useReadingMode();
   const [mode, setMode] = useState<LearningMode>("Simplified");
   const [adapted, setAdapted] = useState(featuredLesson.simplified);
   const [material, setMaterial] = useState<Material | null>(null);
@@ -69,6 +76,10 @@ export function LearningWorkspace() {
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
+  const displayedText = translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted);
+  const readingTransform = materialTitle.toLowerCase().includes("photosynthesis")
+    ? "Photosynthesis\n\nPlants use sunlight to make food.\n\nMain idea:\nSUNLIGHT\nPLANT\nFOOD"
+    : `${materialTitle}\n\nA cell copies its DNA before it divides.\n\nMain idea:\nDNA OPENS\nMATCHING BASES JOIN\nTWO COPIES FORM`;
 
   function contentForMode(learningMode: LearningMode) {
     if (learningMode === "Original") return sourceText;
@@ -121,7 +132,14 @@ export function LearningWorkspace() {
     const apiAction = actionMap[action];
     if (action === "Read Aloud") {
       setMode("Audio");
-      setStatus("Audio mode ready.");
+      speak(displayedText);
+      setStatus("Reading aloud with sentence highlighting.");
+      return;
+    }
+
+    if (action === "Create Figure") {
+      const encoded = encodeURIComponent(sourceText);
+      window.location.href = `/learn/figure?content=${encoded}`;
       return;
     }
 
@@ -229,6 +247,10 @@ export function LearningWorkspace() {
         />
       </div>
 
+      <div className="mt-6">
+        <ReadingModeControls textToRead={displayedText} />
+      </div>
+
       <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Learning modes">
         {modes.map((item) => (
           <button
@@ -258,7 +280,7 @@ export function LearningWorkspace() {
             </div>
             <BookOpen aria-hidden="true" className="text-moss" size={28} />
           </div>
-          <p className="mt-5 text-lg leading-9 text-graphite">{sourceText}</p>
+          <ReadingContent className="mt-5 text-lg leading-9 text-graphite" text={sourceText} />
         </Panel>
         <Panel>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -290,16 +312,48 @@ export function LearningWorkspace() {
               <MindMap node={mindMap} />
             </div>
           ) : (
-            <div className="mt-5 whitespace-pre-line rounded-card bg-paper p-5 text-xl leading-10 text-ink">
-              {translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted)}
+            <div className="mt-5 rounded-card bg-paper p-5 text-xl leading-10 text-ink">
+              <ReadingContent text={displayedText} />
             </div>
           )}
           <p className="mt-4 min-h-6 text-sm font-bold text-moss">{status}</p>
         </Panel>
       </div>
 
+      {preferences.enabled ? (
+        <section
+          className="mt-6 rounded-card border border-moss/25 bg-mint/10 p-5 shadow-soft"
+          aria-label="Reading Mode transformed lesson"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Reading Mode Transformation</p>
+              <h2 className="mt-2 text-2xl font-black text-ink">The lesson is chunked into a simpler reading path.</h2>
+            </div>
+            <span className="rounded-card bg-white px-3 py-2 text-xs font-black text-moss">
+              {getReadingFontLabel(preferences.font)} active
+            </span>
+          </div>
+          <div className="mt-4 rounded-card bg-white p-5">
+            <ReadingContent text={readingTransform} />
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <Button type="button" variant="secondary" onClick={() => speak(readingTransform)}>
+              <Volume2 aria-hidden="true" size={17} />
+              Listen
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => void runAction("Simplify")}>
+              Explain simply
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => void runAction("Explain Step-by-Step")}>
+              Break into steps
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mt-6 rounded-card border border-ink/10 bg-white p-5 shadow-soft" aria-label="Adaptive actions">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
           {actions.map((action) => {
             const Icon = action.icon;
             return (

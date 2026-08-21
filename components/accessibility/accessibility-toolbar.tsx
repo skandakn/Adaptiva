@@ -1,21 +1,24 @@
 "use client";
 
-import { Contrast, Eye, LetterText, Minus, Plus, RotateCcw, Volume2 } from "lucide-react";
+import { Contrast, Languages, RotateCcw, Volume2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ReadingContent } from "@/components/reading/reading-content";
+import { ReadingModeControls } from "@/components/reading/reading-mode-controls";
+import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
+import { readingPreferencesToProfilePayload } from "@/lib/reading-mode";
 import { cn } from "@/lib/utils";
 
+const previewText =
+  "Photo-syn-the-sis is how green plants use light energy to make chemical energy. Chlorophyll helps the plant capture sunlight.";
+
 export function AccessibilityToolbar() {
-  const [fontSize, setFontSize] = useState(18);
-  const [spacing, setSpacing] = useState(1.7);
-  const [letterSpacing, setLetterSpacing] = useState(0.04);
-  const [audioSpeed, setAudioSpeed] = useState(1);
+  const { preferences, resetReadingMode } = useReadingMode();
   const [language, setLanguage] = useState<"English" | "Kannada" | "Hindi">("English");
   const [contrast, setContrast] = useState(false);
-  const [guide, setGuide] = useState(false);
   const [motion, setMotion] = useState(false);
-  const [message, setMessage] = useState("Settings restore automatically when persistence is available.");
+  const [message, setMessage] = useState("Reading preferences restore automatically on this device.");
 
   useEffect(() => {
     document.body.classList.toggle("high-contrast", contrast);
@@ -26,35 +29,21 @@ export function AccessibilityToolbar() {
   }, [contrast, motion]);
 
   useEffect(() => {
-    async function loadSettings() {
+    async function loadLanguage() {
       try {
         const response = await fetch("/api/profile");
         const data = (await response.json()) as {
-          profile?: {
-            font_size?: number;
-            line_spacing?: number;
-            letter_spacing?: number;
-            audio_speed?: number;
-            preferred_language?: "English" | "Kannada" | "Hindi";
-            focus_mode?: boolean;
-          };
-          error?: { message?: string };
+          profile?: { preferred_language?: "English" | "Kannada" | "Hindi" };
         };
-        if (!response.ok) throw new Error(data.error?.message ?? "Could not load settings.");
-        if (data.profile) {
-          setFontSize(data.profile.font_size ?? 18);
-          setSpacing(data.profile.line_spacing ?? 1.7);
-          setLetterSpacing(data.profile.letter_spacing ?? 0.04);
-          setAudioSpeed(data.profile.audio_speed ?? 1);
-          setLanguage(data.profile.preferred_language ?? "English");
-          setGuide(Boolean(data.profile.focus_mode));
+        if (response.ok && data.profile?.preferred_language) {
+          setLanguage(data.profile.preferred_language);
         }
       } catch {
         setMessage("Using local demo settings because persistence is unavailable.");
       }
     }
 
-    void loadSettings();
+    void loadLanguage();
   }, []);
 
   async function saveSettings() {
@@ -63,25 +52,14 @@ export function AccessibilityToolbar() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          font_size: fontSize,
-          line_spacing: spacing,
-          letter_spacing: letterSpacing,
-          audio_speed: audioSpeed,
-          preferred_language: language,
-          focus_mode: guide,
-          audio_enabled: true,
-          preferences: {
-            dyslexia_support: true,
-            focus_support: guide,
-            audio_support: true,
-            language_support: language !== "English"
-          }
+          ...readingPreferencesToProfilePayload(preferences),
+          preferred_language: language
         })
       });
       if (!response.ok) throw new Error("Save failed");
       setMessage("Settings saved.");
     } catch {
-      setMessage("Settings could not be saved to persistence. Demo preview still updated.");
+      setMessage("Settings could not be saved to the database. Local demo preferences are still saved.");
     }
   }
 
@@ -96,89 +74,36 @@ export function AccessibilityToolbar() {
           <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">
             Accessibility Controls
           </p>
-          <p className="text-sm text-graphite">Reading changes apply to the live preview.</p>
+          <p className="text-sm text-graphite">Reading Mode applies to learning content, not navigation or system UI.</p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          type="button"
-          onClick={() => {
-            setFontSize(18);
-            setSpacing(1.7);
-            setLetterSpacing(0.04);
-            setAudioSpeed(1);
-            setLanguage("English");
-            setContrast(false);
-            setGuide(false);
-            setMotion(false);
-          }}
-        >
-          <RotateCcw aria-hidden="true" size={16} />
-          Reset
-        </Button>
-        <Button type="button" onClick={() => void saveSettings()}>
-          Save Settings
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => {
+              resetReadingMode();
+              setLanguage("English");
+              setContrast(false);
+              setMotion(false);
+              setMessage("Settings reset.");
+            }}
+          >
+            <RotateCcw aria-hidden="true" size={16} />
+            Reset
+          </Button>
+          <Button type="button" onClick={() => void saveSettings()}>
+            Save Settings
+          </Button>
+        </div>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <ControlGroup label="Text size">
-          <Button
-            variant="secondary"
-            size="icon"
-            type="button"
-            aria-label="Decrease text size"
-            onClick={() => setFontSize((value) => Math.max(16, value - 1))}
-          >
-            <Minus aria-hidden="true" size={18} />
-          </Button>
-          <span className="min-w-12 text-center text-sm font-black">{fontSize}px</span>
-          <Button
-            variant="secondary"
-            size="icon"
-            type="button"
-            aria-label="Increase text size"
-            onClick={() => setFontSize((value) => Math.min(24, value + 1))}
-          >
-            <Plus aria-hidden="true" size={18} />
-          </Button>
-        </ControlGroup>
-        <ControlGroup label="Line spacing">
-          <input
-            aria-label="Line spacing"
-            className="w-full accent-moss"
-            max="2.2"
-            min="1.4"
-            step="0.1"
-            type="range"
-            value={spacing}
-            onChange={(event) => setSpacing(Number(event.target.value))}
-          />
-        </ControlGroup>
-        <ControlGroup label="Letter spacing">
-          <input
-            aria-label="Letter spacing"
-            className="w-full accent-moss"
-            max="0.12"
-            min="0"
-            step="0.01"
-            type="range"
-            value={letterSpacing}
-            onChange={(event) => setLetterSpacing(Number(event.target.value))}
-          />
-        </ControlGroup>
-        <ControlGroup label="Audio speed">
-          <input
-            aria-label="Audio speed"
-            className="w-full accent-moss"
-            max="1.5"
-            min="0.75"
-            step="0.25"
-            type="range"
-            value={audioSpeed}
-            onChange={(event) => setAudioSpeed(Number(event.target.value))}
-          />
-        </ControlGroup>
-        <ControlGroup label="Language">
+
+      <div className="mt-4">
+        <ReadingModeControls textToRead={previewText} />
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ControlGroup label="Language" icon={Languages}>
           <select
             aria-label="Preferred language"
             className="min-h-11 w-full rounded-card border border-ink/10 bg-white px-3 font-black"
@@ -191,30 +116,30 @@ export function AccessibilityToolbar() {
           </select>
         </ControlGroup>
         <Toggle active={contrast} icon={Contrast} label="High contrast" onClick={() => setContrast((v) => !v)} />
-        <Toggle active={guide} icon={Eye} label="Focus guide" onClick={() => setGuide((v) => !v)} />
         <Toggle active={motion} icon={Volume2} label="Reduced motion" onClick={() => setMotion((v) => !v)} />
       </div>
-      <div
-        className={cn(
-          "mt-4 rounded-card border border-ink/10 bg-paper p-4 text-ink",
-          guide && "focus-guide"
-        )}
-        style={{ fontSize, lineHeight: spacing, letterSpacing: `${letterSpacing}em` }}
-      >
-        <p className="dyslexia-reading">
-          Photo-syn-the-sis is how green plants use LIGHT ENERGY to make CHEMICAL ENERGY.
-        </p>
+
+      <div className="mt-4 rounded-card border border-ink/10 bg-paper p-4 text-ink">
+        <ReadingContent text={previewText} />
       </div>
       <p className="mt-3 text-sm font-bold text-moss">{message}</p>
     </section>
   );
 }
 
-function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function ControlGroup({
+  label,
+  icon: Icon,
+  children
+}: {
+  label: string;
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-card border border-ink/10 bg-paper p-3">
       <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-graphite">
-        <LetterText aria-hidden="true" size={15} />
+        <Icon aria-hidden="true" size={15} />
         {label}
       </p>
       <div className="flex min-h-11 items-center gap-2">{children}</div>
@@ -245,6 +170,9 @@ function Toggle({
     >
       <Icon aria-hidden="true" size={19} />
       <span className="text-sm font-black">{label}</span>
+      <span className="ml-auto rounded-full bg-white px-2 py-1 text-xs font-black text-graphite">
+        {active ? "ON" : "OFF"}
+      </span>
     </button>
   );
 }

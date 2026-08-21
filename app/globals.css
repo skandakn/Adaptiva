@@ -2,11 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-display: swap;
+  font-family: "OpenDyslexic";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/OpenDyslexic-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "Lexend";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/Lexend-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/AtkinsonHyperlegible-Regular.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
   --font-readable: "Atkinson Hyperlegible", "Lexend", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   --focus-ring: 0 0 0 3px rgba(83, 191, 165, 0.38);
+  --reading-font-family: var(--font-readable);
+  --reading-font-size: 18px;
+  --reading-line-height: 1.95;
+  --reading-letter-spacing: 0.035em;
+  --reading-word-spacing: 0.12em;
+  --reading-paragraph-gap: 1.2rem;
+  --reading-measure: 62ch;
 }
 
 * {
@@ -94,11 +125,83 @@ textarea:focus-visible,
   text-wrap: balance;
 }
 
-.dyslexia-reading {
-  font-family: "Atkinson Hyperlegible", "Lexend", ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.04em;
-  line-height: 2;
-  word-spacing: 0.18em;
+.reading-content {
+  overflow-wrap: anywhere;
+  transition:
+    color 180ms ease,
+    font-size 180ms ease,
+    letter-spacing 180ms ease,
+    line-height 180ms ease,
+    max-width 180ms ease,
+    word-spacing 180ms ease;
+}
+
+.reading-content .reading-paragraph + .reading-paragraph {
+  margin-top: 0.85rem;
+}
+
+.reading-mode-active .reading-content {
+  font-family: var(--reading-font-family);
+  font-size: var(--reading-font-size);
+  letter-spacing: var(--reading-letter-spacing);
+  line-height: var(--reading-line-height);
+  max-width: var(--reading-measure);
+  word-spacing: var(--reading-word-spacing);
+}
+
+.reading-mode-active .reading-content .reading-paragraph + .reading-paragraph {
+  margin-top: var(--reading-paragraph-gap);
+}
+
+.reading-sentence {
+  border-radius: 8px;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.reading-sentence-active {
+  background: rgba(242, 184, 75, 0.22);
+  box-decoration-break: clone;
+  color: #142322;
+  font-weight: 800;
+  padding: 0.08rem 0.18rem;
+  -webkit-box-decoration-break: clone;
+}
+
+.difficult-word {
+  border-radius: 6px;
+  color: inherit;
+  cursor: help;
+  font: inherit;
+  font-weight: 900;
+  padding: 0 0.08rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(47, 107, 87, 0.42);
+  text-decoration-thickness: 0.11em;
+  text-underline-offset: 0.18em;
+}
+
+.difficult-word:hover {
+  background: rgba(83, 191, 165, 0.15);
+}
+
+.reading-focus-guide-line {
+  background: linear-gradient(
+    180deg,
+    rgba(242, 184, 75, 0.02),
+    rgba(242, 184, 75, 0.16),
+    rgba(242, 184, 75, 0.02)
+  );
+  border-block: 1px solid rgba(47, 107, 87, 0.18);
+  height: clamp(2.2rem, 5vw, 3rem);
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  transform: translateY(-50%);
+  transition: top 80ms linear;
+  z-index: 45;
 }
 
 .focus-guide {

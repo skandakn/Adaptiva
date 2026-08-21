@@ -8,6 +8,7 @@ import { supabaseReadySchema } from "@/lib/data-model";
 import { cn } from "@/lib/utils";
 
 const flows = [
+  "Text-to-Figure: Educational Text -> AI Understanding -> Concept & Relationship Extraction -> Figure Specification -> Deterministic Renderer -> Accessible Visual + Text Explanation",
   "PDF: Upload -> Parse -> AI -> Accessibility Engine -> Adapted Content",
   "Live Lecture: Microphone -> Speech Recognition -> AI -> Live Accessible Notes",
   "Video: Upload -> Audio Extraction -> Transcription -> AI -> Accessible Video Learning",

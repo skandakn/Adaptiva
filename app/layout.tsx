@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SiteShell } from "@/components/layout/site-shell";
+import { ReadingModeProvider } from "@/components/reading/reading-mode-provider";
 
 export const metadata: Metadata = {
   title: "Adaptiva - Adaptive accessibility for learning",
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SiteShell>{children}</SiteShell>
+        <ReadingModeProvider>
+          <SiteShell>{children}</SiteShell>
+        </ReadingModeProvider>
       </body>
     </html>
   );

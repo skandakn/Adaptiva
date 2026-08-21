@@ -12,6 +12,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { DemoJourney } from "@/components/landing/demo-journey";
+import { ReadingModeShowcase } from "@/components/reading/reading-mode-showcase";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel, SectionHeader } from "@/components/ui/panel";
 
@@ -61,6 +62,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid gap-5">
+            <ReadingModeShowcase />
             <Panel className="bg-white/92">
               <div className="flex items-center justify-between gap-3">
                 <div>

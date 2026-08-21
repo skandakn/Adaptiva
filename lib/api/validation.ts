@@ -86,3 +86,29 @@ export const videoProcessSchema = z.object({
   transcript: z.string().min(1).max(50000).optional(),
   save_material: z.boolean().default(true)
 });
+
+export const figureTypeSchema = z.enum([
+  "auto",
+  "process",
+  "flowchart",
+  "concept-map",
+  "cycle",
+  "comparison",
+  "timeline",
+  "system",
+  "annotated",
+  "infographic"
+]);
+
+export const figurePayloadSchema = z.object({
+  content: z.string().min(1).max(20000),
+  figureType: figureTypeSchema.default("auto"),
+  complexity: z.enum(["simple", "detailed"]).default("simple"),
+  material_id: z.string().uuid().optional().nullable(),
+  save: z.boolean().default(false)
+});
+
+export const figureRegenerateSchema = z.object({
+  complexity: z.enum(["simple", "detailed"]).optional(),
+  figureType: figureTypeSchema.optional()
+});
