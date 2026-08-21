@@ -89,6 +89,9 @@ export function VideoAccessibility() {
             </div>
           )}
         </div>
+        <div className="mt-4">
+          <Button type="button">Generate Notes</Button>
+        </div>
         <p className="mt-4 text-sm font-bold text-graphite">{status}</p>
       </Panel>
       <Panel>
