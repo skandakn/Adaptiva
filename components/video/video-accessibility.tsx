@@ -41,7 +41,6 @@ function formatTimestamp(seconds: number) {
 
 export function VideoAccessibility() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [rawTranscript, setRawTranscript] = useState("");
   const [notes, setNotes] = useState("");
@@ -58,7 +57,6 @@ export function VideoAccessibility() {
   function handleFile(file: File | undefined) {
     if (!file) return;
     if (videoUrl) URL.revokeObjectURL(videoUrl);
-    setUploadedVideoFile(file);
     setTranscriptSegments([]);
     setRawTranscript("");
     setNotes("");
@@ -120,64 +118,66 @@ export function VideoAccessibility() {
 
   return (
     <div className="grid gap-6">
-    <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-      <Panel>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Recorded Video Mode</p>
-            <h1 className="mt-2 text-4xl font-black text-ink">Accessible video learning</h1>
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+        <Panel>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Recorded Video Mode</p>
+              <h1 className="mt-2 text-4xl font-black text-ink">Accessible video learning</h1>
+            </div>
+            <FileVideo aria-hidden="true" className="text-moss" size={32} />
           </div>
-          <FileVideo aria-hidden="true" className="text-moss" size={32} />
-        </div>
-        <label className="mt-6 grid min-h-24 cursor-pointer place-items-center rounded-card border border-dashed border-moss/45 bg-mint/10 p-4 text-center font-black text-moss">
-          Upload video
-          <input
-            className="sr-only"
-            type="file"
-            accept="video/*"
-            onChange={(event) => handleFile(event.target.files?.[0])}
-          />
-        </label>
-        <div className="mt-5 overflow-hidden rounded-card bg-ink">
-          {videoUrl ? (
-            <video className="aspect-video w-full" src={videoUrl} controls />
-          ) : (
-            <div className="grid aspect-video place-items-center p-6 text-center text-white">
-              <div>
-                <Captions aria-hidden="true" className="mx-auto mb-3" size={36} />
-                <p className="font-black">Sample biology lecture preview</p>
-                <p className="mt-2 text-sm text-white/75">Upload a file or continue with demo data.</p>
+          <label className="mt-6 grid min-h-24 cursor-pointer place-items-center rounded-card border border-dashed border-moss/45 bg-mint/10 p-4 text-center font-black text-moss">
+            Upload video
+            <input
+              className="sr-only"
+              type="file"
+              accept="video/*"
+              onChange={(event) => handleFile(event.target.files?.[0])}
+            />
+          </label>
+          <div className="mt-5 overflow-hidden rounded-card bg-ink">
+            {videoUrl ? (
+              <video className="aspect-video w-full" src={videoUrl} controls />
+            ) : (
+              <div className="grid aspect-video place-items-center p-6 text-center text-white">
+                <div>
+                  <Captions aria-hidden="true" className="mx-auto mb-3" size={36} />
+                  <p className="font-black">Sample biology lecture preview</p>
+                  <p className="mt-2 text-sm text-white/75">Upload a file or continue with demo data.</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="mt-4">
-          <Button type="button" className="w-full sm:w-auto" onClick={() => void generateNotes()}>
-            Generate Notes
-          </Button>
-        </div>
-        <p className="mt-4 text-sm font-bold text-graphite">{status}</p>
-      </Panel>
-      <Panel>
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">AI Video Notes</p>
-        <h2 className="mt-2 text-3xl font-black text-ink">Timestamped transcript</h2>
-        <div className="mt-5 space-y-3">
-          {transcriptSegments.length ? (
-            transcriptSegments.map((segment, index) => (
-              <div key={`${segment.start}-${index}`} className="grid grid-cols-[4rem_1fr] gap-3 rounded-card bg-paper p-3">
-                <span className="font-black text-moss">{formatTimestamp(segment.start)}</span>
-                <ReadingContent className="text-sm leading-7 text-graphite" text={segment.text} />
+            )}
+          </div>
+          <div className="mt-4">
+            <Button type="button" className="w-full sm:w-auto" onClick={() => void generateNotes()}>
+              Generate Notes
+            </Button>
+          </div>
+          <p className="mt-4 text-sm font-bold text-graphite">{status}</p>
+        </Panel>
+        <Panel>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">AI Video Notes</p>
+          <h2 className="mt-2 text-3xl font-black text-ink">Timestamped transcript</h2>
+          <div className="mt-5 space-y-3">
+            {transcriptSegments.length ? (
+              transcriptSegments.map((segment, index) => (
+                <div key={`${segment.start}-${index}`} className="grid grid-cols-[4rem_1fr] gap-3 rounded-card bg-paper p-3">
+                  <span className="font-black text-moss">{formatTimestamp(segment.start)}</span>
+                  <ReadingContent className="text-sm leading-7 text-graphite" text={segment.text} />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-card bg-paper p-3">
+                <ReadingContent
+                  className="text-sm leading-7 text-graphite"
+                  text="Upload and process a video to see timestamped transcript segments."
+                />
               </div>
-            ))
-          ) : (
-            <div className="rounded-card bg-paper p-3">
-              <ReadingContent
-                className="text-sm leading-7 text-graphite"
-                text="Upload and process a video to see timestamped transcript segments."
-              />
-            </div>
-      </Panel>
-    </div>
+            )}
+          </div>
+        </Panel>
+      </div>
       {notes ? (
         <Panel>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Generated notes</p>

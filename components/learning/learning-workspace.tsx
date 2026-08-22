@@ -2,13 +2,8 @@
 
 import {
   BookOpen,
-  Check,
-  CheckCircle2,
-  Copy,
-  FileImage,
   BarChart2,
   Languages,
-  Layers,
   ListChecks,
   Loader2,
   Map,
@@ -198,7 +193,7 @@ function loadTesseractRuntime() {
       if (window.Tesseract) resolve(window.Tesseract);
       else reject(new Error("Local OCR did not load."));
     };
-    script.onerror = () => reject(new Error("Local OCR could not load.")));
+    script.onerror = () => reject(new Error("Local OCR could not load."));
     document.head.appendChild(script);
   });
 }
@@ -667,7 +662,7 @@ export function LearningWorkspace() {
           <p className="mt-2 text-sm font-bold text-moss">{status}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Badge>Reading mode: {getReadingFontLabel(preferences.fontFamily)}</Badge>
+          <Badge>Reading mode: {getReadingFontLabel(preferences.font)}</Badge>
           <Badge>Language: {language}</Badge>
         </div>
       </div>
@@ -728,12 +723,12 @@ export function LearningWorkspace() {
               <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
                 English
               </span>
-              {mode !== "Visual Explanation" && <AudioPlayer text={displayedText} />}
+              {mode !== "Visual Explanation" && <AudioPlayer text={displayedText} language={language} />}
             </div>
           </div>
           {mode === "Visual Explanation" ? (
             <div className="mt-5">
-              <MindMap data={mindMap} />
+              <MindMap key={`${language}-${mindMap.id}`} node={mindMap} language={language} />
             </div>
           ) : (
             <div className="mt-5">
@@ -916,7 +911,7 @@ export function LearningWorkspace() {
                 <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
                   English
                 </span>
-                {activeImageMode !== "Visual" && <AudioPlayer text={currentImageAdaptedText} />}
+                {activeImageMode !== "Visual" && <AudioPlayer text={currentImageAdaptedText} language={language} />}
               </div>
             </div>
 
@@ -927,7 +922,7 @@ export function LearningWorkspace() {
               </div>
             ) : activeImageMode === "Visual" ? (
               <div className="mt-5">
-                <MindMap data={mindMap} />
+                <MindMap key={`${language}-${mindMap.id}`} node={mindMap} language={language} />
               </div>
             ) : (
               <ReadingContent

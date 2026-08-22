@@ -181,6 +181,7 @@ export async function generateNotesFromTranscript(transcript: string) {
 }
 
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
+  void _context;
   const config = getOpenAiConfig();
   if (!config.apiKey) {
     await delay();
