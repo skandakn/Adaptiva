@@ -72,9 +72,37 @@ function getResponseOutputText(data: unknown) {
     .trim();
 }
 
+function getLatestUserMessage(messages: AdaptivaChatMessage[]) {
+  return [...messages].reverse().find((message) => message.role === "user")?.content.trim() ?? "";
+}
+
+function getChatFallback(messages: AdaptivaChatMessage[]) {
+  const question = getLatestUserMessage(messages);
+  const normalized = question.toLowerCase();
+  const topic = question.replace(/^(explain simply|explain step-by-step|summarize|give an example of)\s*:\s*/i, "").trim();
+  const subject = topic || "this topic";
+
+  if (/step[ -]?by[ -]?step/.test(normalized)) {
+    return `Let’s break down ${subject}:
+1. Identify the main idea.
+2. Split it into small parts.
+3. Work through one part at a time.
+4. Check your understanding by explaining it in your own words.`;
+  }
+  if (/summari[sz]e/.test(normalized)) {
+    return `Summary: focus on the central idea of ${subject}, the most important supporting details, and how those details connect. Try restating those three points in your own words.`;
+  }
+  if (/example/.test(normalized)) {
+    return `Example: think of ${subject} as a familiar everyday process. First there is an input, then a change or action happens, and finally there is an outcome. Matching each part to something you know can make the idea easier to remember.`;
+  }
+
+  return `Here is a simple way to approach ${subject}: start with the main idea, learn one key term at a time, and connect each term to an example. If you share the lesson text or a specific question, I can break it into smaller study steps.`;
+}
+
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
   if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
-    return null;
+    await delay();
+    return getChatFallback(messages);
   }
 
   try {
@@ -97,14 +125,12 @@ export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?
       })
     });
 
-    if (!response.ok) {
-      return null;
-    }
+    if (!response.ok) return getChatFallback(messages);
 
     const data = await response.json();
-    return getResponseOutputText(data) || null;
+    return getResponseOutputText(data) || getChatFallback(messages);
   } catch {
-    return null;
+    return getChatFallback(messages);
   }
 }
 

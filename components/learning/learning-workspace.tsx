@@ -397,12 +397,19 @@ export function LearningWorkspace() {
           action,
           text: `${apiResult}\n\nTrying local OCR on ${selectedImage.name}...`
         });
-        const tesseract = await loadTesseractRuntime();
-        const ocrResult = await tesseract.recognize(selectedImage.dataUrl, "eng");
-        setImageResult({
-          action,
-          text: formatOcrResult(action, selectedImage.name, ocrResult.data.text)
-        });
+        try {
+          const tesseract = await loadTesseractRuntime();
+          const ocrResult = await tesseract.recognize(selectedImage.dataUrl, "eng");
+          setImageResult({
+            action,
+            text: formatOcrResult(action, selectedImage.name, ocrResult.data.text)
+          });
+        } catch {
+          setImageResult({
+            action,
+            text: `${apiResult}\n\nLocal OCR could not load in this browser. The image is still available above; try a connection that permits the optional OCR helper, or configure an AI key for full image analysis.`
+          });
+        }
         return;
       }
       setImageResult({
