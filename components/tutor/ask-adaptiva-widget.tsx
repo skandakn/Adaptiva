@@ -72,7 +72,7 @@ export function AskAdaptivaWidget() {
     send(input);
   }
 
-  function useQuickAction(prompt: string) {
+  function handleQuickAction(prompt: string) {
     setInput(prompt);
     inputRef.current?.focus();
   }
@@ -120,7 +120,7 @@ export function AskAdaptivaWidget() {
                   key={action.label}
                   type="button"
                   className="min-h-9 rounded-card border border-ink/10 bg-white px-3 text-xs font-black text-graphite transition hover:border-moss/40 hover:bg-cloud hover:text-ink"
-                  onClick={() => useQuickAction(action.prompt)}
+                  onClick={() => handleQuickAction(action.prompt)}
                   disabled={loading}
                 >
                   {action.label}
