@@ -81,6 +81,16 @@ export const adaptPayloadSchema = z.object({
   save_as_note: z.boolean().default(false)
 });
 
+export const imageAdaptPayloadSchema = z.object({
+  action: z.enum(["Simple explanation", "Example", "Visual explanation", "Step-by-step"]),
+  image: z
+    .string()
+    .min(1)
+    .max(12000000)
+    .refine((value) => /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value), "Image must be a data URL."),
+  filename: z.string().min(1).max(180)
+});
+
 export const liveNoteSchema = z.object({
   transcript: z.string().min(1).max(50000),
   title: z.string().min(1).max(160).default("Live lecture notes"),

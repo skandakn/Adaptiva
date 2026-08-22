@@ -54,6 +54,7 @@ type AdaptResponse = {
 };
 
 type TranslatedContent = Partial<Record<LearningMode, string>>;
+type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
 
 function stringifyResult(result: unknown) {
   if (typeof result === "string") return result;
@@ -88,6 +89,8 @@ export function LearningWorkspace() {
   const [language, setLanguage] = useState<ContentLanguage>("English");
   const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
   const [imageResult, setImageResult] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [imageBusy, setImageBusy] = useState<ImageAdaptAction | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
@@ -229,6 +232,48 @@ export function LearningWorkspace() {
       setStatus("Adapted note saved.");
     } catch {
       setStatus("Could not save note to persistence. The adapted content remains visible.");
+    }
+  }
+
+  function uploadImage(file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      setUploadedImage({ name: file.name, dataUrl });
+      setImageResult(`Uploaded image: ${file.name}\n\nChoose a button to analyze this image or scanned document.`);
+    };
+    reader.onerror = () => {
+      setImageResult("Could not read this image. Try another file.");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function runImageAction(action: ImageAdaptAction) {
+    if (!uploadedImage) {
+      setImageResult("Upload an image first, then choose an explanation style.");
+      return;
+    }
+
+    setImageBusy(action);
+    setImageResult(`${action} is reading ${uploadedImage.name}...`);
+    try {
+      const response = await fetch("/api/image-adapt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          image: uploadedImage.dataUrl,
+          filename: uploadedImage.name
+        })
+      });
+      const payload = (await response.json()) as { result?: string; error?: { message?: string } };
+      if (!response.ok) throw new Error(payload.error?.message ?? "Image explanation failed.");
+      setImageResult(payload.result ?? "No explanation was returned for this image.");
+    } catch (error) {
+      setImageResult(error instanceof Error ? error.message : "Could not explain the uploaded image.");
+    } finally {
+      setImageBusy(null);
     }
   }
 
@@ -402,36 +447,43 @@ export function LearningWorkspace() {
             </div>
           </div>
           <label className="mt-5 grid min-h-24 cursor-pointer place-items-center rounded-card border border-dashed border-moss/45 bg-mint/10 p-4 text-center font-black text-moss">
-            Upload image
+            {uploadedImage ? uploadedImage.name : "Upload image"}
             <input
               className="sr-only"
               type="file"
               accept="image/*"
-              onChange={() =>
-                setImageResult(
-                  "Extracted text: DNA replication creates two identical DNA molecules before cell division.\n\nSimplified: A cell copies its DNA so each new cell receives instructions."
-                )
-              }
+              onChange={(event) => uploadImage(event.target.files?.[0])}
             />
           </label>
-          <Button className="mt-4 w-full" type="button" variant="secondary" onClick={() => setImageResult("Mock OCR fallback extracted the sample DNA replication paragraph and prepared it for simplification.")}>
+          {uploadedImage ? (
+            <div className="mt-4 overflow-hidden rounded-card border border-ink/10 bg-paper">
+              <img src={uploadedImage.dataUrl} alt="" className="max-h-56 w-full object-contain" />
+            </div>
+          ) : null}
+          <Button
+            className="mt-4 w-full"
+            type="button"
+            variant="secondary"
+            onClick={() => void runImageAction("Simple explanation")}
+          >
             <ScanText aria-hidden="true" size={18} />
-            Use Mock OCR
+            Read uploaded image
           </Button>
         </Panel>
         <Panel>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Adaptive Difficulty</p>
           <h2 className="mt-2 text-2xl font-black text-ink">Adaptiva noticed this concept may need another explanation.</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {["Simple explanation", "Example", "Visual explanation", "Step-by-step"].map((item) => (
+            {(["Simple explanation", "Example", "Visual explanation", "Step-by-step"] as ImageAdaptAction[]).map((item) => (
               <button
                 key={item}
                 type="button"
                 className="flex min-h-14 items-center gap-2 rounded-card border border-ink/10 bg-paper px-4 text-left font-black text-ink transition hover:border-moss/40 hover:bg-cloud"
-                onClick={() => void runAction(item.includes("Step") ? "Explain Step-by-Step" : "Simplify")}
+                disabled={Boolean(imageBusy)}
+                onClick={() => void runImageAction(item)}
               >
                 <CheckCircle2 aria-hidden="true" className="text-moss" size={18} />
-                {item}
+                {imageBusy === item ? "Reading image..." : item}
               </button>
             ))}
           </div>

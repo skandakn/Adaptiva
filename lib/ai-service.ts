@@ -2,6 +2,7 @@ import { featuredLesson, mindMapsByLanguage } from "@/lib/demo-data";
 import type { AccessibilitySupport, ContentLanguage, MindMapNode } from "@/lib/types";
 
 type Level = "simple" | "very-simple" | "new";
+type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
 
 const delay = (ms = 360) =>
   new Promise((resolve) => {
@@ -45,6 +46,79 @@ async function callOpenAI(instructions: string, input: string, fallback: string)
       return fallback;
     }
 
+    const data = (await response.json()) as { output_text?: string };
+    return data.output_text?.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function describeImageFallback(action: ImageAdaptAction, filename: string, image: string) {
+  const mime = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/)?.[1] ?? "uploaded image";
+  const sizeBytes = Math.round(((image.split(",")[1]?.length ?? 0) * 3) / 4);
+  const sizeLabel = sizeBytes > 1000000 ? `${(sizeBytes / 1000000).toFixed(1)} MB` : `${Math.max(1, Math.round(sizeBytes / 1000))} KB`;
+  const base = `Uploaded image: ${filename}\nType: ${mime}\nApprox. size: ${sizeLabel}`;
+
+  if (action === "Example") {
+    return `${base}\n\nExample-based support: describe the visible objects, labels, or handwritten text in this image, then connect each one to a familiar example. Add an OpenAI API key to generate this from the actual image contents.`;
+  }
+  if (action === "Visual explanation") {
+    return `${base}\n\nVisual support: inspect the image from top to bottom, name the important regions, and explain what each region shows. Add an OpenAI API key to generate this from the actual image contents.`;
+  }
+  if (action === "Step-by-step") {
+    return `${base}\n\nStep-by-step support:\n1. Look at the title, labels, and main shapes.\n2. Read any scanned text line by line.\n3. Explain each visible part in order.\n\nAdd an OpenAI API key to generate these steps from the actual image contents.`;
+  }
+
+  return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis. Add an OpenAI API key to generate a simple explanation from the actual visible content.`;
+}
+
+export async function analyzeUploadedImage(action: ImageAdaptAction, image: string, filename: string) {
+  const fallback = describeImageFallback(action, filename, image);
+  if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
+    await delay();
+    return fallback;
+  }
+
+  const actionInstructions: Record<ImageAdaptAction, string> = {
+    "Simple explanation": "Explain the uploaded image or scanned page in simple learner-friendly language. Mention visible text, objects, labels, and the main idea.",
+    Example: "Explain the uploaded image or scanned page using one concrete example connected to what is visible.",
+    "Visual explanation": "Describe the uploaded image spatially. Move from the most important visible area to supporting details, labels, and relationships.",
+    "Step-by-step": "Explain the uploaded image or scanned page as numbered steps. If it contains text, extract the useful text before explaining it."
+  };
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.AI_VISION_MODEL ?? process.env.AI_MODEL ?? "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content:
+              "You are Adaptiva, an accessibility-first learning assistant. Analyze only the uploaded image. If it is a scanned document, extract the important readable text before explaining it."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: `${actionInstructions[action]}\n\nFilename: ${filename}`
+              },
+              {
+                type: "input_image",
+                image_url: image
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) return fallback;
     const data = (await response.json()) as { output_text?: string };
     return data.output_text?.trim() || fallback;
   } catch {
