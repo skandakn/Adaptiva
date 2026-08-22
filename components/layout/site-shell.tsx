@@ -7,6 +7,7 @@ import { useState } from "react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Logo } from "@/components/layout/logo";
 import { ReadingModeQuickControl } from "@/components/reading/reading-mode-quick-control";
+import { AskAdaptivaWidget } from "@/components/tutor/ask-adaptiva-widget";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -118,6 +119,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
       <main id="main-content">{children}</main>
+      <AskAdaptivaWidget />
       <footer className="border-t border-ink/10 bg-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_2fr] lg:px-8">
           <div>
