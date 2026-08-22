@@ -22,9 +22,7 @@ const primaryNav = [
 ];
 
 const secondaryNav = [
-  { href: "/tutor", label: "Tutor" },
   { href: "/progress", label: "Progress" },
-  { href: "/teacher", label: "Teacher" },
   { href: "/settings", label: "Settings" },
   { href: "/about", label: "Impact" }
 ];
