@@ -239,6 +239,7 @@ export function LearningWorkspace() {
   const [imageStatus, setImageStatus] = useState<string>("Sample scanned material loaded.");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const imageOcrTextRef = useRef<{ dataUrl: string; text: string } | null>(null);
+  const imageOriginalRef = useRef<{ dataUrl: string; text: string } | null>(null);
   const imageCacheRef = useRef<Record<string, Partial<Record<ImageLearningMode, { extracted: string; adapted: string }>>>>({});
 
   const sourceText = material?.original_content ?? featuredLesson.original;
@@ -427,7 +428,10 @@ export function LearningWorkspace() {
         return;
       }
       imageOcrTextRef.current = null;
+      imageOriginalRef.current = null;
       imageCacheRef.current[dataUrl] = {};
+      setExtractedImageText("");
+      setImageAdaptedByMode({ Original: "", Simplified: "", Example: "", "Step-by-Step": "", Visual: "" });
       const imgData = { name: file.name, dataUrl };
       setUploadedImage(imgData);
 
@@ -457,11 +461,67 @@ export function LearningWorkspace() {
     return "Simple explanation";
   }
 
+  async function generateImageModeFromOriginal(
+    targetMode: Exclude<ImageLearningMode, "Original">,
+    originalText: string,
+    selectedImage: { name: string; dataUrl: string }
+  ) {
+    const action = targetMode === "Simplified" ? "simplify" : targetMode === "Example" ? "example" : targetMode === "Step-by-Step" ? "step-by-step" : "mind-map";
+    const response = await fetch("/api/adapt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, text: originalText, language, save_as_note: false })
+    });
+    const payload = (await response.json()) as AdaptResponse;
+    if (!response.ok) throw new Error(payload.error?.message ?? `Could not create ${targetMode} Mode.`);
+
+    if (targetMode === "Visual") {
+      const nextMap = mindMapFromResult(payload.result);
+      if (!nextMap) throw new Error("Could not create a mind map from the extracted content.");
+      setMindMap(nextMap);
+      return;
+    }
+
+    const adapted = stringifyResult(payload.result).trim();
+    if (!adapted) throw new Error(`Could not create ${targetMode} Mode.`);
+    setImageAdaptedByMode((current) => ({ ...current, [targetMode]: adapted }));
+    imageCacheRef.current[selectedImage.dataUrl] ??= {};
+    imageCacheRef.current[selectedImage.dataUrl]![targetMode] = { extracted: originalText, adapted };
+  }
+
   async function processImage(targetMode: ImageLearningMode, selectedImage = uploadedImage) {
     setActiveImageMode(targetMode);
 
     if (!selectedImage) {
       imageInputRef.current?.click();
+      return;
+    }
+
+    const originalForImage = imageOriginalRef.current?.dataUrl === selectedImage.dataUrl ? imageOriginalRef.current.text : "";
+    if (originalForImage) {
+      if (targetMode === "Original") {
+        setExtractedImageText(originalForImage);
+        setImageStatus(`Showing Original Content from ${selectedImage.name}.`);
+        return;
+      }
+
+      const cachedAdaptation = imageCacheRef.current[selectedImage.dataUrl]?.[targetMode];
+      if (cachedAdaptation && targetMode !== "Visual") {
+        setImageAdaptedByMode((current) => ({ ...current, [targetMode]: cachedAdaptation.adapted }));
+        setImageStatus(`Showing ${targetMode} Mode from the original content.`);
+        return;
+      }
+
+      setImageBusy(true);
+      setImageStatus(`Creating ${targetMode} Mode from the original extracted content...`);
+      try {
+        await generateImageModeFromOriginal(targetMode, originalForImage, selectedImage);
+        setImageStatus(`${targetMode} Mode created from the original content.`);
+      } catch (error) {
+        setImageStatus(error instanceof Error ? error.message : `Could not create ${targetMode} Mode.`);
+      } finally {
+        setImageBusy(false);
+      }
       return;
     }
 
@@ -501,6 +561,7 @@ export function LearningWorkspace() {
           const ocrFormatted = formatOcrResult(action, selectedImage.name, rawOcr);
 
           setExtractedImageText(ocrFormatted.extractedText);
+          imageOriginalRef.current = { dataUrl: selectedImage.dataUrl, text: ocrFormatted.extractedText };
           setImageAdaptedByMode((prev) => ({
             ...prev,
             Original: ocrFormatted.extractedText,
@@ -520,6 +581,10 @@ export function LearningWorkspace() {
             };
           }
 
+          if (targetMode === "Visual") {
+            await generateImageModeFromOriginal("Visual", ocrFormatted.extractedText, selectedImage);
+          }
+
           setImageStatus(`Image extracted and adapted successfully (${targetMode} Mode).`);
         } catch {
           setExtractedImageText(`Uploaded image: ${selectedImage.name}`);
@@ -535,6 +600,7 @@ export function LearningWorkspace() {
       const adaptedText = targetMode === "Original" ? extracted : parsed.adaptedText;
 
       setExtractedImageText(extracted);
+      imageOriginalRef.current = { dataUrl: selectedImage.dataUrl, text: extracted };
       setImageAdaptedByMode((prev) => ({
         ...prev,
         Original: extracted,
@@ -548,6 +614,10 @@ export function LearningWorkspace() {
         extracted,
         adapted: adaptedText
       };
+
+      if (targetMode === "Visual") {
+        await generateImageModeFromOriginal("Visual", extracted, selectedImage);
+      }
 
       setImageStatus(`Image extracted and adapted successfully (${targetMode} Mode).`);
     } catch (error) {
@@ -844,7 +914,7 @@ export function LearningWorkspace() {
                 <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
                   English
                 </span>
-                <AudioPlayer text={currentImageAdaptedText} />
+                {activeImageMode !== "Visual" && <AudioPlayer text={currentImageAdaptedText} />}
               </div>
             </div>
 
@@ -852,6 +922,10 @@ export function LearningWorkspace() {
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <Loader2 aria-hidden="true" size={32} className="animate-spin text-moss" />
                 <p className="font-black text-ink">Generating {activeImageMode} Mode...</p>
+              </div>
+            ) : activeImageMode === "Visual" ? (
+              <div className="mt-5">
+                <MindMap data={mindMap} />
               </div>
             ) : (
               <ReadingContent
