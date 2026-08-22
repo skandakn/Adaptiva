@@ -162,36 +162,36 @@ function describeImageFallback(action: ImageAdaptAction, filename: string, image
   const base = `Uploaded image: ${filename}\nType: ${mime}\nApprox. size: ${sizeLabel}`;
 
   if (action === "Example") {
-    return `${base}\n\nExample-based support: describe the visible objects, labels, or handwritten text in this image, then connect each one to a familiar example. Add an OpenAI API key to generate this from the actual image contents.`;
+    return `${base}\n\nExample-based support: describe the visible objects, labels, or handwritten text in this image, then connect each one to a familiar example. Add a Groq API key to generate this from the actual image contents.`;
   }
   if (action === "Visual explanation") {
-    return `${base}\n\nVisual support: inspect the image from top to bottom, name the important regions, and explain what each region shows. Add an OpenAI API key to generate this from the actual image contents.`;
+    return `${base}\n\nVisual support: inspect the image from top to bottom, name the important regions, and explain what each region shows. Add a Groq API key to generate this from the actual image contents.`;
   }
   if (action === "Step-by-step") {
-    return `${base}\n\nStep-by-step support:\n1. Look at the title, labels, and main shapes.\n2. Read any scanned text line by line.\n3. Explain each visible part in order.\n\nAdd an OpenAI API key to generate these steps from the actual image contents.`;
+    return `${base}\n\nStep-by-step support:\n1. Look at the title, labels, and main shapes.\n2. Read any scanned text line by line.\n3. Explain each visible part in order.\n\nAdd a Groq API key to generate these steps from the actual image contents.`;
   }
 
-  return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis. Add an OpenAI API key to generate a simple explanation from the actual visible content.`;
+  return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis. Add a Groq API key to generate a simple explanation from the actual visible content.`;
 }
 
-async function getOpenAIErrorMessage(response: Response) {
+async function getGroqErrorMessage(response: Response) {
   try {
     const data = (await response.json()) as { error?: { code?: string; message?: string } };
     if (data.error?.code === "insufficient_quota") {
-      return "OpenAI could not analyze this image because the API key has no available quota. Check billing or add credits in the OpenAI dashboard, then try again.";
+      return "Groq could not analyze this image because the API key has no available quota. Check your Groq account, then try again.";
     }
     if (data.error?.code === "invalid_api_key") {
-      return "OpenAI could not analyze this image because the API key is invalid. Create a new key, update .env.local, and restart the app.";
+      return "Groq could not analyze this image because the API key is invalid. Create a new key, update .env.local, and restart the app.";
     }
-    return data.error?.message ?? "OpenAI could not analyze this image right now.";
+    return data.error?.message ?? "Groq could not analyze this image right now.";
   } catch {
-    return "OpenAI could not analyze this image right now.";
+    return "Groq could not analyze this image right now.";
   }
 }
 
 export async function analyzeUploadedImage(action: ImageAdaptAction, image: string, filename: string) {
   const fallback = describeImageFallback(action, filename, image);
-  if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
+  if (!process.env.GROQ_API_KEY) {
     await delay();
     return fallback;
   }
@@ -204,14 +204,14 @@ export async function analyzeUploadedImage(action: ImageAdaptAction, image: stri
   };
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.groq.com/openai/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_VISION_MODEL ?? process.env.AI_MODEL ?? "gpt-4.1-mini",
+        model: process.env.AI_VISION_MODEL ?? "qwen/qwen3.6-27b",
         input: [
           {
             role: "system",
@@ -235,7 +235,7 @@ export async function analyzeUploadedImage(action: ImageAdaptAction, image: stri
       })
     });
 
-    if (!response.ok) return await getOpenAIErrorMessage(response);
+    if (!response.ok) return await getGroqErrorMessage(response);
     const data = await response.json();
     return getResponseOutputText(data) || fallback;
   } catch {

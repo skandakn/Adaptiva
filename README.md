@@ -21,9 +21,10 @@ Copy `.env.example` to `.env.local` and fill in the values you want to use.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_ADAPTIVA_DEMO_MODE=true
-AI_PROVIDER=demo
-AI_MODEL=gpt-4.1-mini
-OPENAI_API_KEY=
+AI_PROVIDER=groq
+AI_MODEL=openai/gpt-oss-20b
+AI_VISION_MODEL=qwen/qwen3.6-27b
+GROQ_API_KEY=
 ```
 
 Without Supabase variables, local development uses demo fallback persistence. Production should configure Supabase and should not fake authentication.
@@ -87,4 +88,4 @@ The UI calls clean service abstractions in `lib/ai-service.ts`:
 - `extractConcepts`
 - `analyzeAccessibilityNeeds`
 
-When `OPENAI_API_KEY` is not configured, the app stays in demo mode. API keys should remain server-side.
+When `GROQ_API_KEY` is not configured, the app stays in demo mode. API keys should remain server-side.

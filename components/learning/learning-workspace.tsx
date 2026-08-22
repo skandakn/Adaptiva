@@ -105,6 +105,7 @@ function shouldUseLocalOcr(result: string) {
   return (
     result.includes("no available quota") ||
     result.includes("Add an OpenAI API key") ||
+    result.includes("Add a Groq API key") ||
     result.includes("API key is invalid")
   );
 }
@@ -422,7 +423,7 @@ export function LearningWorkspace() {
         } catch {
           setImageResult({
             action,
-            text: `I could not load the local OCR reader for ${selectedImage.name}. Check your internet connection and try again, or configure an AI key for full image analysis. The uploaded image preview remains available above.`
+            text: `I could not load the local OCR reader for ${selectedImage.name}. Check your internet connection and try again, or add a Groq API key for full image analysis. The uploaded image preview remains available above.`
           });
         }
         return;
