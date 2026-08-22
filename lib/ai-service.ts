@@ -40,6 +40,19 @@ function getAiConfig() {
   };
 }
 
+function getOpenAiConfig() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const textModel = process.env.AI_MODEL && !process.env.AI_MODEL.includes("gpt-oss")
+    ? process.env.AI_MODEL
+    : "gpt-4o-mini";
+
+  return {
+    apiKey,
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    textModel
+  };
+}
+
 export const aiRuntime = {
   get provider() {
     return getAiConfig().apiKey ? getAiConfig().provider : "demo-mode";
@@ -130,7 +143,7 @@ function getChatFallback(messages: AdaptivaChatMessage[]) {
 }
 
 export async function generateNotesFromTranscript(transcript: string) {
-  const config = getAiConfig();
+  const config = getOpenAiConfig();
   if (!config.apiKey) {
     return "";
   }
@@ -168,7 +181,7 @@ export async function generateNotesFromTranscript(transcript: string) {
 }
 
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
-  const config = getAiConfig();
+  const config = getOpenAiConfig();
   if (!config.apiKey) {
     await delay();
     return getChatFallback(messages);
