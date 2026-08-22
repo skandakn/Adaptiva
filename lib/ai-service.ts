@@ -3,6 +3,8 @@ import type { AccessibilitySupport, ContentLanguage, MindMapNode } from "@/lib/t
 
 type Level = "simple" | "very-simple" | "new";
 type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
+export type AdaptivaChatMessage = { role: "user" | "assistant"; content: string };
+export type AdaptivaChatContext = Record<string, unknown>;
 
 const delay = (ms = 360) =>
   new Promise((resolve) => {
@@ -68,6 +70,42 @@ function getResponseOutputText(data: unknown) {
     .filter(Boolean)
     .join("\n")
     .trim();
+}
+
+export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
+  if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL ?? "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content:
+              "You are Ask Adaptiva, a general educational assistant for learners across subjects. Answer academic and learning questions from your general knowledge unless the learner provides details in the conversation. Explain clearly, accurately, and accessibly. When the learner asks for a simpler explanation, step-by-step explanation, examples, summary, important points, quiz, easier wording, study help, or accessibility support, adapt the response to that request. Keep the conversation primarily focused on education and learning support."
+          },
+          ...messages
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return getResponseOutputText(data) || null;
+  } catch {
+    return null;
+  }
 }
 
 function describeImageFallback(action: ImageAdaptAction, filename: string, image: string) {

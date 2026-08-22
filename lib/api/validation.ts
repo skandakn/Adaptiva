@@ -81,6 +81,24 @@ export const adaptPayloadSchema = z.object({
   save_as_note: z.boolean().default(false)
 });
 
+export const chatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(12000)
+});
+
+export const chatContextSchema = z
+  .record(z.string(), z.unknown())
+  .refine((context) => JSON.stringify(context).length <= 50000, "Context is too large.");
+
+export const chatPayloadSchema = z.object({
+  messages: z
+    .array(chatMessageSchema)
+    .min(1)
+    .max(40)
+    .refine((messages) => messages.some((message) => message.role === "user"), "At least one user message is required."),
+  context: chatContextSchema.optional()
+});
+
 export const imageAdaptPayloadSchema = z.object({
   action: z.enum(["Simple explanation", "Example", "Visual explanation", "Step-by-step"]),
   image: z
