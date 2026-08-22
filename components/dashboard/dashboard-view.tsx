@@ -7,7 +7,7 @@ import { AccessibilityProfileCard } from "@/components/accessibility/profile-car
 import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
-import { sampleLessons } from "@/lib/demo-data";
+import { featuredLesson } from "@/lib/demo-data";
 
 type DashboardProfile = {
   reading_style?: string;
@@ -36,7 +36,8 @@ type DashboardData = {
   stats: {
     learning_streak: string;
     focus_sessions: number;
-    concepts_mastered: number;
+    concepts_understood: number;
+    materials_completed: number;
     recommended_mode: string;
   };
 };
@@ -44,23 +45,24 @@ type DashboardData = {
 const fallbackData: DashboardData = {
   mode: "demo",
   profile: {
-    reading_style: "Dyslexia-friendly",
+    reading_style: "OpenDyslexic",
     focus_mode: true,
     audio_enabled: true,
     preferred_language: "English"
   },
   preferences: { step_by_step_support: true },
-  materials: sampleLessons.map((lesson) => ({
-    id: lesson.id,
-    title: lesson.title,
-    description: lesson.course,
+  materials: [{
+    id: featuredLesson.id,
+    title: featuredLesson.title,
+    description: featuredLesson.course,
     content_type: "text",
     created_at: new Date().toISOString()
-  })),
+  }],
   stats: {
-    learning_streak: "5 days",
-    focus_sessions: 18,
-    concepts_mastered: 34,
+    learning_streak: "1 day",
+    focus_sessions: 1,
+    concepts_understood: 3,
+    materials_completed: 1,
     recommended_mode: "Step-by-step"
   }
 };
@@ -94,7 +96,8 @@ export function DashboardView() {
   const stats = [
     { label: "Learning streak", value: data.stats.learning_streak, icon: Flame },
     { label: "Focus sessions", value: String(data.stats.focus_sessions), icon: Clock },
-    { label: "Concepts mastered", value: String(data.stats.concepts_mastered), icon: Brain },
+    { label: "Concepts understood", value: String(data.stats.concepts_understood), icon: Brain },
+    { label: "Materials completed", value: String(data.stats.materials_completed), icon: Target },
     { label: "Recommended mode", value: data.stats.recommended_mode, icon: Target }
   ];
 

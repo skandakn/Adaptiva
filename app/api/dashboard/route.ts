@@ -17,9 +17,12 @@ export async function GET() {
       preferences,
       materials,
       stats: {
-        learning_streak: "5 days",
+        learning_streak: "1 day",
         focus_sessions: summary.sessions.filter((session) => session.mode.toLowerCase().includes("focus")).length,
-        concepts_mastered: summary.progress.filter((item) => item.status === "mastered").length,
+        concepts_understood: summary.progress.filter(
+          (item) => item.status === "understood" || item.status === "mastered"
+        ).length,
+        materials_completed: summary.sessions.filter((session) => session.completed_at).length,
         recommended_mode: "Step-by-step"
       }
     });
@@ -71,7 +74,10 @@ export async function GET() {
     stats: {
       learning_streak: sessionsResult.data.length ? "Active" : "No sessions yet",
       focus_sessions: sessionsResult.data.filter((session) => session.mode.toLowerCase().includes("focus")).length,
-      concepts_mastered: progressResult.data.filter((item) => item.status === "mastered").length,
+      concepts_understood: progressResult.data.filter(
+        (item) => item.status === "understood" || item.status === "mastered"
+      ).length,
+      materials_completed: sessionsResult.data.filter((session) => session.completed_at).length,
       recommended_mode: preferencesResult.data?.step_by_step_support ? "Step-by-step" : "Simplified"
     }
   });

@@ -66,8 +66,9 @@ export function ProgressView() {
   );
 
   const totalSeconds = data.sessions.reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0);
+  const learningMinutes = Math.floor(totalSeconds / 60);
   const metrics = [
-    { label: "Learning time", value: `${Math.floor(totalSeconds / 3600)}h ${Math.floor((totalSeconds % 3600) / 60)}m`, icon: Clock },
+    { label: "Learning time", value: `${learningMinutes} minutes`, icon: Clock },
     { label: "Focus sessions", value: String(data.sessions.filter((session) => session.mode.toLowerCase().includes("focus")).length), icon: Focus },
     { label: "Concepts understood", value: String(data.progress.filter((item) => item.status === "understood" || item.status === "mastered").length), icon: Brain },
     { label: "Materials completed", value: String(data.sessions.filter((session) => session.completed_at).length), icon: FileCheck2 }

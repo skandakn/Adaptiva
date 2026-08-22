@@ -17,7 +17,7 @@ const seedMaterialId = "11111111-1111-4111-8111-111111111111";
 const demoProfile: ProfileRow = {
   id: "22222222-2222-4222-8222-222222222222",
   user_id: demoUserId,
-  reading_style: "Dyslexia-friendly",
+  reading_style: "OpenDyslexic",
   font_size: 18,
   line_spacing: 1.7,
   letter_spacing: 0.04,
@@ -72,19 +72,10 @@ const sessions: SessionRow[] = [
     id: id(),
     user_id: demoUserId,
     material_id: seedMaterialId,
-    mode: "Simplified",
-    started_at: now(),
-    completed_at: now(),
-    duration_seconds: 1380
-  },
-  {
-    id: id(),
-    user_id: demoUserId,
-    material_id: seedMaterialId,
     mode: "Focus",
     started_at: now(),
     completed_at: now(),
-    duration_seconds: 960
+    duration_seconds: 1500
   }
 ];
 

@@ -243,22 +243,24 @@ export const tutorConversation: TutorMessage[] = [
   }
 ];
 
-export const progressData = [
-  { name: "Mon", focus: 24, concepts: 4 },
-  { name: "Tue", focus: 32, concepts: 5 },
-  { name: "Wed", focus: 18, concepts: 3 },
-  { name: "Thu", focus: 42, concepts: 7 },
-  { name: "Fri", focus: 35, concepts: 6 },
-  { name: "Sat", focus: 28, concepts: 5 },
-  { name: "Sun", focus: 38, concepts: 6 }
-];
+const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+const today = new Date();
+
+export const progressData = Array.from({ length: 7 }, (_, index) => {
+  const date = new Date(today);
+  date.setDate(today.getDate() - (6 - index));
+  const isToday = index === 6;
+  return {
+    name: isToday ? "Today" : weekday.format(date),
+    focus: isToday ? 25 : 0,
+    concepts: isToday ? 3 : 0
+  };
+});
 
 export const modeUsageData = [
-  { name: "Simplify", value: 34 },
-  { name: "Audio", value: 22 },
-  { name: "Focus", value: 18 },
-  { name: "Visual", value: 16 },
-  { name: "Translate", value: 10 }
+  { name: "Reading Mode (OpenDyslexic)", value: 1 },
+  { name: "Audio", value: 1 },
+  { name: "Step-by-step", value: 1 }
 ];
 
 export const teacherInsightData = [
