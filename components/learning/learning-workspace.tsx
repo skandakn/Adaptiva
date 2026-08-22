@@ -257,7 +257,9 @@ export function LearningWorkspace() {
       const response = await fetch("/api/adapt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, text: sourceText, language, material_id: material?.id, save_as_note: false })
+        // This is a read-only adaptation request. Do not attach a material ID,
+        // because guests can still use the Learn views without persistence.
+        body: JSON.stringify({ action, text: sourceText, language, save_as_note: false })
       });
       const payload = (await response.json()) as AdaptResponse;
       if (!response.ok) throw new Error(payload.error?.message ?? "Could not create this learning view.");
