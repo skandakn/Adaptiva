@@ -13,7 +13,7 @@ import {
   Sparkles,
   Volume2
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdaptButton } from "@/components/learning/adapt-button";
 import { AudioPlayer } from "@/components/learning/audio-player";
 import { FocusMode } from "@/components/learning/focus-mode";
@@ -96,6 +96,8 @@ export function LearningWorkspace() {
   const [imageResult, setImageResult] = useState<ImageResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<{ name: string; dataUrl: string } | null>(null);
   const [imageBusy, setImageBusy] = useState<ImageAdaptAction | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingImageActionRef = useRef<ImageAdaptAction | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
@@ -249,12 +251,18 @@ export function LearningWorkspace() {
     reader.onload = () => {
       const dataUrl = typeof reader.result === "string" ? reader.result : "";
       setUploadedImage({ name: file.name, dataUrl });
+      const pendingAction = pendingImageActionRef.current;
+      pendingImageActionRef.current = null;
       setImageResult({
-        action: "Simple explanation",
-        text: `Uploaded image: ${file.name}\n\nChoose a button to analyze this image or scanned document.`
+        action: pendingAction ?? "Simple explanation",
+        text: pendingAction
+          ? `${pendingAction} is reading ${file.name}...`
+          : `Uploaded image: ${file.name}\n\nChoose a button to analyze this image or scanned document.`
       });
+      if (pendingAction) void runImageAction(pendingAction, { name: file.name, dataUrl });
     };
     reader.onerror = () => {
+      pendingImageActionRef.current = null;
       setImageResult({
         action: "Simple explanation",
         text: "Could not read this image. Try another file."
@@ -263,19 +271,21 @@ export function LearningWorkspace() {
     reader.readAsDataURL(file);
   }
 
-  async function runImageAction(action: ImageAdaptAction) {
-    if (!uploadedImage) {
+  async function runImageAction(action: ImageAdaptAction, selectedImage = uploadedImage) {
+    if (!selectedImage) {
+      pendingImageActionRef.current = action;
       setImageResult({
         action,
-        text: "Upload an image first, then choose an explanation style."
+        text: "Choose an image or scanned document, then Adaptiva will show this result here."
       });
+      imageInputRef.current?.click();
       return;
     }
 
     setImageBusy(action);
     setImageResult({
       action,
-      text: `${action} is reading ${uploadedImage.name}...`
+      text: `${action} is reading ${selectedImage.name}...`
     });
     try {
       const response = await fetch("/api/image-adapt", {
@@ -283,8 +293,8 @@ export function LearningWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          image: uploadedImage.dataUrl,
-          filename: uploadedImage.name
+          image: selectedImage.dataUrl,
+          filename: selectedImage.name
         })
       });
       const payload = (await response.json()) as { result?: string; error?: { message?: string } };
@@ -475,6 +485,7 @@ export function LearningWorkspace() {
           <label className="mt-5 grid min-h-24 cursor-pointer place-items-center rounded-card border border-dashed border-moss/45 bg-mint/10 p-4 text-center font-black text-moss">
             {uploadedImage ? uploadedImage.name : "Upload image"}
             <input
+              ref={imageInputRef}
               className="sr-only"
               type="file"
               accept="image/*"
