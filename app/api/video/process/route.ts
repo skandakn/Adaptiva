@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     }
 
     const auth = await requireApiUser();
-    if (auth.response) return auth.response;
 
     const transcriptionFormData = new FormData();
     transcriptionFormData.append("file", uploadedVideo, uploadedVideo.name);
