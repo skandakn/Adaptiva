@@ -102,6 +102,14 @@ export function LearningWorkspace() {
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
   const displayedText = translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted);
+  const displayedImageResult =
+    imageResult ??
+    (uploadedImage
+      ? {
+          action: "Image uploaded" as const,
+          text: `Uploaded image: ${uploadedImage.name}\n\nPress Simple explanation, Example, Visual explanation, or Step-by-step to show information from this image.`
+        }
+      : null);
   const focusConcepts = keyConceptsByLanguage[language] ?? featuredLesson.keyConcepts;
   const readingTransform = materialTitle.toLowerCase().includes("photosynthesis")
     ? "Photosynthesis\n\nPlants use sunlight to make food.\n\nMain idea:\nSUNLIGHT\nPLANT\nFOOD"
@@ -527,9 +535,9 @@ export function LearningWorkspace() {
             ))}
           </div>
           <div className="mt-5 min-h-28 rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
-            <p className="font-black text-ink">{imageResult?.action ?? "Image result"}</p>
+            <p className="font-black text-ink">{displayedImageResult?.action ?? "Image result"}</p>
             <p className="mt-2 whitespace-pre-line">
-              {imageResult?.text ?? "Upload an image or scanned document first. Then use these buttons to get information from that uploaded file."}
+              {displayedImageResult?.text ?? "Upload an image or scanned document first. Then use these buttons to get information from that uploaded file."}
             </p>
           </div>
         </Panel>
