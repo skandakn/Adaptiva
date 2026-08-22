@@ -16,7 +16,6 @@ const primaryNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/learn", label: "Learn" },
   { href: "/learn/figure", label: "Figure" },
-  { href: "/live", label: "Live" },
   { href: "/video", label: "Video" },
   { href: "/architecture", label: "Architecture" }
 ];
