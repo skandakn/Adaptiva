@@ -12,25 +12,25 @@ const delay = (ms = 360) =>
   });
 
 export const aiRuntime = {
-  provider: process.env.OPENAI_API_KEY ? process.env.AI_PROVIDER ?? "openai" : "demo-mode",
-  demoMode: !process.env.OPENAI_API_KEY
+  provider: process.env.GROQ_API_KEY ? process.env.AI_PROVIDER ?? "groq" : "demo-mode",
+  demoMode: !process.env.GROQ_API_KEY
 };
 
 async function callOpenAI(instructions: string, input: string, fallback: string) {
-  if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
+  if (!process.env.GROQ_API_KEY) {
     await delay();
     return fallback;
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.groq.com/openai/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "gpt-4.1-mini",
+        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
         input: [
           {
             role: "system",
@@ -83,21 +83,58 @@ function getChatFallback(messages: AdaptivaChatMessage[]) {
     : "Ask Adaptiva needs a question to answer.";
 }
 
+export async function generateNotesFromTranscript(transcript: string) {
+  if (!process.env.GROQ_API_KEY) {
+    return "";
+  }
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
+        input: [
+          {
+            role: "system",
+            content:
+              "You generate clear, structured educational notes from a video transcript. Use only information supported by the transcript. Do not invent facts, examples, definitions, or conclusions that are not present. Organize the notes with a title, key points, and a short summary when the transcript supports them. If the transcript is incomplete, note that and stay within what it actually says."
+          },
+          {
+            role: "user",
+            content: `Create educational notes from this transcript:\n\n${transcript}`
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) return "";
+
+    const data = await response.json();
+    return getResponseOutputText(data);
+  } catch {
+    return "";
+  }
+}
+
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
-  if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
+  if (!process.env.GROQ_API_KEY) {
     await delay();
     return getChatFallback(messages);
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.groq.com/openai/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "gpt-4.1-mini",
+        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
         input: [
           {
             role: "system",
@@ -249,7 +286,7 @@ export async function generateMindMap(
   language: ContentLanguage = "English"
 ): Promise<MindMapNode> {
   const fallback = mindMapsByLanguage[language] ?? featuredLesson.mindMap;
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     await delay();
     return fallback;
   }
