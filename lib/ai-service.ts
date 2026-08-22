@@ -78,25 +78,9 @@ function getLatestUserMessage(messages: AdaptivaChatMessage[]) {
 
 function getChatFallback(messages: AdaptivaChatMessage[]) {
   const question = getLatestUserMessage(messages);
-  const normalized = question.toLowerCase();
-  const topic = question.replace(/^(explain simply|explain step-by-step|summarize|give an example of)\s*:\s*/i, "").trim();
-  const subject = topic || "this topic";
-
-  if (/step[ -]?by[ -]?step/.test(normalized)) {
-    return `Let’s break down ${subject}:
-1. Identify the main idea.
-2. Split it into small parts.
-3. Work through one part at a time.
-4. Check your understanding by explaining it in your own words.`;
-  }
-  if (/summari[sz]e/.test(normalized)) {
-    return `Summary: focus on the central idea of ${subject}, the most important supporting details, and how those details connect. Try restating those three points in your own words.`;
-  }
-  if (/example/.test(normalized)) {
-    return `Example: think of ${subject} as a familiar everyday process. First there is an input, then a change or action happens, and finally there is an outcome. Matching each part to something you know can make the idea easier to remember.`;
-  }
-
-  return `Here is a simple way to approach ${subject}: start with the main idea, learn one key term at a time, and connect each term to an example. If you share the lesson text or a specific question, I can break it into smaller study steps.`;
+  return question
+    ? "Ask Adaptiva needs the server-side AI connection to answer this directly. Please try again when the AI service is available."
+    : "Ask Adaptiva needs a question to answer.";
 }
 
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
@@ -118,7 +102,7 @@ export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?
           {
             role: "system",
             content:
-              "You are Ask Adaptiva, a general educational assistant for learners across subjects. Answer academic and learning questions from your general knowledge unless the learner provides details in the conversation. Explain clearly, accurately, and accessibly. When the learner asks for a simpler explanation, step-by-step explanation, examples, summary, important points, quiz, easier wording, study help, or accessibility support, adapt the response to that request. Keep the conversation primarily focused on education and learning support."
+              "You are Ask Adaptiva, a general educational assistant for learners across subjects. When the learner asks a direct educational question, answer the question directly first. For example, if they ask what a concept is, explain that concept; if they ask for a simple explanation, explain it simply; if they ask for an example, include an example. Do not give meta-advice about how to study, how to approach the question, or what information to provide unless the learner explicitly asks for study guidance or planning help. Explain clearly, accurately, and accessibly. When the learner asks for a simpler explanation, step-by-step explanation, examples, summary, important points, quiz, easier wording, study help, or accessibility support, adapt the response to that request. Keep the conversation primarily focused on education and learning support."
           },
           ...messages
         ]
