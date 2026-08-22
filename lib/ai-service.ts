@@ -2,7 +2,7 @@ import { featuredLesson, mindMapsByLanguage } from "@/lib/demo-data";
 import type { AccessibilitySupport, ContentLanguage, MindMapNode } from "@/lib/types";
 
 type Level = "simple" | "very-simple" | "new";
-type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
+export type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
 export type AdaptivaChatMessage = { role: "user" | "assistant"; content: string };
 export type AdaptivaChatContext = Record<string, unknown>;
 
@@ -11,27 +11,89 @@ const delay = (ms = 360) =>
     setTimeout(resolve, ms);
   });
 
+function getAiConfig() {
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const apiKey = openaiKey || groqKey;
+  const isGroq = !openaiKey && Boolean(groqKey);
+  const provider = (process.env.AI_PROVIDER || (openaiKey ? "openai" : groqKey ? "groq" : "demo-mode")).toLowerCase();
+
+  const textModel = isGroq
+    ? (process.env.AI_MODEL || "llama-3.3-70b-versatile")
+    : (process.env.AI_MODEL && !process.env.AI_MODEL.includes("gpt-oss") ? process.env.AI_MODEL : "gpt-4o-mini");
+
+  const visionModel = isGroq
+    ? (process.env.AI_VISION_MODEL && !process.env.AI_VISION_MODEL.includes("qwen") ? process.env.AI_VISION_MODEL : "llama-3.2-11b-vision-preview")
+    : (process.env.AI_VISION_MODEL && !process.env.AI_VISION_MODEL.includes("gpt-4.1") && !process.env.AI_VISION_MODEL.includes("qwen")
+        ? process.env.AI_VISION_MODEL
+        : "gpt-4o-mini");
+
+  return {
+    apiKey,
+    provider,
+    isGroq,
+    endpoint: isGroq
+      ? "https://api.groq.com/openai/v1/chat/completions"
+      : "https://api.openai.com/v1/chat/completions",
+    textModel,
+    visionModel
+  };
+}
+
 export const aiRuntime = {
-  provider: process.env.GROQ_API_KEY ? process.env.AI_PROVIDER ?? "groq" : "demo-mode",
-  demoMode: !process.env.GROQ_API_KEY
+  get provider() {
+    return getAiConfig().apiKey ? getAiConfig().provider : "demo-mode";
+  },
+  get demoMode() {
+    return !getAiConfig().apiKey;
+  }
 };
 
-async function callOpenAI(instructions: string, input: string, fallback: string) {
-  if (!process.env.GROQ_API_KEY) {
+function getResponseOutputText(data: unknown): string {
+  if (!data || typeof data !== "object") return "";
+
+  // Standard OpenAI / Groq chat completions format
+  if ("choices" in data && Array.isArray((data as { choices?: unknown }).choices)) {
+    const choices = (data as { choices: Array<{ message?: { content?: unknown } }> }).choices;
+    const content = choices[0]?.message?.content;
+    if (typeof content === "string") return content.trim();
+  }
+
+  // output_text format
+  if ("output_text" in data && typeof (data as { output_text?: unknown }).output_text === "string") {
+    return (data as { output_text: string }).output_text.trim();
+  }
+
+  // OpenAI Realtime / custom response output format
+  if ("output" in data && Array.isArray((data as { output?: unknown }).output)) {
+    return (data as { output: Array<{ content?: Array<{ text?: unknown; type?: unknown }> }> }).output
+      .flatMap((item) => item.content ?? [])
+      .map((item) => (typeof item.text === "string" ? item.text : ""))
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+  }
+
+  return "";
+}
+
+async function callAI(instructions: string, input: string, fallback: string) {
+  const config = getAiConfig();
+  if (!config.apiKey) {
     await delay();
     return fallback;
   }
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/responses", {
+    const response = await fetch(config.endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
-        input: [
+        model: config.textModel,
+        messages: [
           {
             role: "system",
             content: instructions
@@ -40,7 +102,8 @@ async function callOpenAI(instructions: string, input: string, fallback: string)
             role: "user",
             content: input
           }
-        ]
+        ],
+        temperature: 0.3
       })
     });
 
@@ -48,28 +111,11 @@ async function callOpenAI(instructions: string, input: string, fallback: string)
       return fallback;
     }
 
-    const data = (await response.json()) as { output_text?: string };
-    return data.output_text?.trim() || fallback;
+    const data = await response.json();
+    return getResponseOutputText(data) || fallback;
   } catch {
     return fallback;
   }
-}
-
-function getResponseOutputText(data: unknown) {
-  if (data && typeof data === "object" && "output_text" in data && typeof (data as { output_text?: unknown }).output_text === "string") {
-    return (data as { output_text: string }).output_text.trim();
-  }
-
-  if (!data || typeof data !== "object" || !("output" in data) || !Array.isArray((data as { output?: unknown }).output)) {
-    return "";
-  }
-
-  return (data as { output: Array<{ content?: Array<{ text?: unknown; type?: unknown }> }> }).output
-    .flatMap((item) => item.content ?? [])
-    .map((item) => (typeof item.text === "string" ? item.text : ""))
-    .filter(Boolean)
-    .join("\n")
-    .trim();
 }
 
 function getLatestUserMessage(messages: AdaptivaChatMessage[]) {
@@ -79,29 +125,30 @@ function getLatestUserMessage(messages: AdaptivaChatMessage[]) {
 function getChatFallback(messages: AdaptivaChatMessage[]) {
   const question = getLatestUserMessage(messages);
   return question
-    ? "Ask Adaptiva needs the server-side AI connection to answer this directly. Please try again when the AI service is available."
+    ? "Ask Adaptiva needs the server-side AI connection to answer this directly. Please check your API key in .env.local."
     : "Ask Adaptiva needs a question to answer.";
 }
 
 export async function generateNotesFromTranscript(transcript: string) {
-  if (!process.env.GROQ_API_KEY) {
+  const config = getAiConfig();
+  if (!config.apiKey) {
     return "";
   }
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/responses", {
+    const response = await fetch(config.endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
-        input: [
+        model: config.textModel,
+        messages: [
           {
             role: "system",
             content:
-              "You generate clear, structured educational notes from a video transcript. Use only information supported by the transcript. Do not invent facts, examples, definitions, or conclusions that are not present. Organize the notes with a title, key points, and a short summary when the transcript supports them. If the transcript is incomplete, note that and stay within what it actually says."
+              "You generate clear, structured educational notes from a video transcript. Use only information supported by the transcript. Organize the notes with a title, key points, and a short summary."
           },
           {
             role: "user",
@@ -121,25 +168,26 @@ export async function generateNotesFromTranscript(transcript: string) {
 }
 
 export async function askAdaptivaChat(messages: AdaptivaChatMessage[], _context?: AdaptivaChatContext) {
-  if (!process.env.GROQ_API_KEY) {
+  const config = getAiConfig();
+  if (!config.apiKey) {
     await delay();
     return getChatFallback(messages);
   }
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/responses", {
+    const response = await fetch(config.endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "openai/gpt-oss-20b",
-        input: [
+        model: config.textModel,
+        messages: [
           {
             role: "system",
             content:
-              "You are Ask Adaptiva, a general educational assistant for learners across subjects. When the learner asks a direct educational question, answer the question directly first. For example, if they ask what a concept is, explain that concept; if they ask for a simple explanation, explain it simply; if they ask for an example, include an example. Do not give meta-advice about how to study, how to approach the question, or what information to provide unless the learner explicitly asks for study guidance or planning help. Explain clearly, accurately, and accessibly. When the learner asks for a simpler explanation, step-by-step explanation, examples, summary, important points, quiz, easier wording, study help, or accessibility support, adapt the response to that request. Keep the conversation primarily focused on education and learning support."
+              "You are Ask Adaptiva, a general educational assistant for learners across subjects. When the learner asks a direct educational question, answer the question directly first. For example, if they ask what a concept is, explain that concept; if they ask for a simple explanation, explain it simply; if they ask for an example, include an example. Do not give meta-advice about how to study unless requested. Explain clearly, accurately, and accessibly."
           },
           ...messages
         ]
@@ -162,84 +210,105 @@ function describeImageFallback(action: ImageAdaptAction, filename: string, image
   const base = `Uploaded image: ${filename}\nType: ${mime}\nApprox. size: ${sizeLabel}`;
 
   if (action === "Example") {
-    return `${base}\n\nExample-based support: describe the visible objects, labels, or handwritten text in this image, then connect each one to a familiar example. Add a Groq API key to generate this from the actual image contents.`;
+    return `${base}\n\nExample-based support: describe the visible objects, labels, or handwritten text in this image, then connect each one to a familiar example.`;
   }
   if (action === "Visual explanation") {
-    return `${base}\n\nVisual support: inspect the image from top to bottom, name the important regions, and explain what each region shows. Add a Groq API key to generate this from the actual image contents.`;
+    return `${base}\n\nVisual support: inspect the image from top to bottom, name the important regions, and explain what each region shows.`;
   }
   if (action === "Step-by-step") {
-    return `${base}\n\nStep-by-step support:\n1. Look at the title, labels, and main shapes.\n2. Read any scanned text line by line.\n3. Explain each visible part in order.\n\nAdd a Groq API key to generate these steps from the actual image contents.`;
+    return `${base}\n\nStep-by-step support:\n1. Look at the title, labels, and main shapes.\n2. Read any scanned text line by line.\n3. Explain each visible part in order.`;
   }
 
-  return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis. Add a Groq API key to generate a simple explanation from the actual visible content.`;
+  return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis.`;
 }
 
-async function getGroqErrorMessage(response: Response) {
+async function getApiErrorMessage(response: Response, providerName: string) {
   try {
     const data = (await response.json()) as { error?: { code?: string; message?: string } };
     if (data.error?.code === "insufficient_quota") {
-      return "Groq could not analyze this image because the API key has no available quota. Check your Groq account, then try again.";
+      return `${providerName} could not analyze this image because the API key has no available quota.`;
     }
     if (data.error?.code === "invalid_api_key") {
-      return "Groq could not analyze this image because the API key is invalid. Create a new key, update .env.local, and restart the app.";
+      return `${providerName} could not analyze this image because the API key is invalid.`;
     }
-    return data.error?.message ?? "Groq could not analyze this image right now.";
+    return data.error?.message ?? `${providerName} could not analyze this image right now.`;
   } catch {
-    return "Groq could not analyze this image right now.";
+    return `${providerName} could not analyze this image right now.`;
   }
 }
 
-export async function analyzeUploadedImage(action: ImageAdaptAction, image: string, filename: string) {
+export async function analyzeUploadedImage(
+  action: ImageAdaptAction,
+  image: string,
+  filename: string
+): Promise<{ result: string; fallback: boolean }> {
+  const config = getAiConfig();
   const fallback = describeImageFallback(action, filename, image);
-  if (!process.env.GROQ_API_KEY) {
+
+  if (!config.apiKey) {
     await delay();
-    return fallback;
+    return { result: fallback, fallback: true };
   }
 
   const actionInstructions: Record<ImageAdaptAction, string> = {
-    "Simple explanation": "Explain the uploaded image or scanned page in simple learner-friendly language. Mention visible text, objects, labels, and the main idea.",
-    Example: "Explain the uploaded image or scanned page using one concrete example connected to what is visible.",
-    "Visual explanation": "Describe the uploaded image spatially. Move from the most important visible area to supporting details, labels, and relationships.",
-    "Step-by-step": "Explain the uploaded image or scanned page as numbered steps. If it contains text, extract the useful text before explaining it."
+    "Simple explanation":
+      "1. Transcribe and extract all readable text, titles, labels, or key information from the image.\n2. Provide a clear, simplified, learner-friendly explanation of the main concept in accessible language.",
+    "Example":
+      "1. Transcribe and extract the visible text and key concepts from the image.\n2. Provide a concrete, intuitive real-world example that clearly illustrates the concept.",
+    "Visual explanation":
+      "1. Transcribe and extract visible headings, diagram elements, and text.\n2. Describe the visual layout, spatial organization, diagram flow, and structural relationships in detail.",
+    "Step-by-step":
+      "1. Transcribe and extract the readable text and core facts from the image.\n2. Break the information or process down into sequential, numbered learning steps (Step 1, Step 2, etc.)."
   };
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/responses", {
+    const response = await fetch(config.endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_VISION_MODEL ?? "qwen/qwen3.6-27b",
-        input: [
+        model: config.visionModel,
+        messages: [
           {
             role: "system",
             content:
-              "You are Adaptiva, an accessibility-first learning assistant. Analyze only the uploaded image. If it is a scanned document, extract the important readable text before explaining it."
+              "You are Adaptiva, an accessibility-first educational AI that analyzes uploaded documents, study notes, images, and textbook scans. Help students with learning differences understand the material clearly.\n\nStructure your output with clear markdown headings:\n### 📄 Extracted Content\n(Transcribe or summarize all readable text, labels, equations, and diagrams found in the image)\n\n### 💡 " + action + "\n(Provide the tailored explanation based on the requested format)"
           },
           {
             role: "user",
             content: [
               {
-                type: "input_text",
-                text: `${actionInstructions[action]}\n\nFilename: ${filename}`
+                type: "text",
+                text: `${actionInstructions[action]}\n\nUploaded file: ${filename}`
               },
               {
-                type: "input_image",
-                image_url: image
+                type: "image_url",
+                image_url: {
+                  url: image
+                }
               }
             ]
           }
-        ]
+        ],
+        max_tokens: 1200
       })
     });
 
-    if (!response.ok) return await getGroqErrorMessage(response);
+    if (!response.ok) {
+      const errorMsg = await getApiErrorMessage(response, config.isGroq ? "Groq" : "OpenAI");
+      return { result: `${errorMsg}\n\n${fallback}`, fallback: true };
+    }
+
     const data = await response.json();
-    return getResponseOutputText(data) || fallback;
+    const content = getResponseOutputText(data);
+    if (content) {
+      return { result: content, fallback: false };
+    }
+    return { result: fallback, fallback: true };
   } catch {
-    return fallback;
+    return { result: fallback, fallback: true };
   }
 }
 
@@ -253,7 +322,7 @@ export async function simplifyText(input: string, level: Level) {
           ? featuredLesson.simplified
           : input;
 
-  return callOpenAI(
+  return callAI(
     "Rewrite educational content in accessible plain language. Preserve meaning and avoid medicalized language.",
     `Level: ${level}\n\n${input}`,
     fallback
@@ -261,7 +330,7 @@ export async function simplifyText(input: string, level: Level) {
 }
 
 export async function summarizeContent(input: string) {
-  return callOpenAI(
+  return callAI(
     "Summarize educational content for a learner who benefits from low cognitive load. Use short, clear sentences.",
     input,
     `Main idea: ${input.slice(0, 92)}... The concept becomes easier when it is split into one action at a time.`
@@ -270,7 +339,7 @@ export async function summarizeContent(input: string) {
 
 export async function explainStepByStep(input = featuredLesson.original) {
   const fallback = featuredLesson.stepByStep.join("\n");
-  const result = await callOpenAI(
+  const result = await callAI(
     "Break the concept into numbered sequential learning steps. One idea per step.",
     input,
     fallback
@@ -286,11 +355,12 @@ export async function generateMindMap(
   language: ContentLanguage = "English"
 ): Promise<MindMapNode> {
   const fallback = mindMapsByLanguage[language] ?? featuredLesson.mindMap;
-  if (!process.env.GROQ_API_KEY) {
+  const config = getAiConfig();
+  if (!config.apiKey) {
     await delay();
     return fallback;
   }
-  const result = await callOpenAI(
+  const result = await callAI(
     `Create a compact educational concept map. Return ONLY valid JSON with this shape:
 {"id":"root","label":"topic","children":[{"id":"b1","label":"branch","children":[{"id":"l1","label":"leaf"}]}]}
 Rules:
@@ -339,7 +409,7 @@ export async function translateMindMap(language: ContentLanguage, node: MindMapN
   }
 
   const labels = collectLabels(node);
-  const result = await callOpenAI(
+  const result = await callAI(
     `Translate each mind-map label into ${language}. Keep scientific terms readable for learners.
 Return ONLY JSON: {"id":"translated label", ...} using the same ids.
 Do not change the number of nodes or invent new ids.`,
@@ -359,7 +429,7 @@ Do not change the number of nodes or invent new ids.`,
 
 export async function generateQuiz(input = featuredLesson.original) {
   const fallback = featuredLesson.quiz;
-  const result = await callOpenAI(
+  const result = await callAI(
     "Create three accessible quiz questions and answers from the learning content.",
     input,
     ""
@@ -369,12 +439,15 @@ export async function generateQuiz(input = featuredLesson.original) {
     .split(/\n\n+/)
     .filter(Boolean)
     .slice(0, 3)
-    .map((block) => ({ question: block.split("\n")[0] ?? block, answer: block.split("\n").slice(1).join(" ") || "Review the concept in the adapted lesson." }));
+    .map((block) => ({
+      question: block.split("\n")[0] ?? block,
+      answer: block.split("\n").slice(1).join(" ") || "Review the concept in the adapted lesson."
+    }));
 }
 
 export async function translateContent(language: ContentLanguage, input = featuredLesson.simplified) {
   if (language === "English") {
-    return callOpenAI(`Keep the content in English. Clarify wording without adding new facts.`, input, input);
+    return callAI(`Keep the content in English. Clarify wording without adding new facts.`, input, input);
   }
 
   const demoFallbackByLanguage: Record<Exclude<ContentLanguage, "English">, string> = {
@@ -394,7 +467,7 @@ export async function translateContent(language: ContentLanguage, input = featur
     input === featuredLesson.simplified ||
     input === featuredLesson.original;
 
-  return callOpenAI(
+  return callAI(
     `Translate the educational content into ${language}. Keep scientific terms clear for a learner. Preserve paragraph and line breaks. Do not add new facts.`,
     input,
     usesDemoLesson ? demoFallbackByLanguage[language] : input
@@ -402,7 +475,7 @@ export async function translateContent(language: ContentLanguage, input = featur
 }
 
 export async function extractConcepts(input = featuredLesson.original) {
-  const result = await callOpenAI(
+  const result = await callAI(
     "Extract the most important learning concepts as a short newline-separated list.",
     input,
     featuredLesson.keyConcepts.join("\n")
@@ -415,7 +488,7 @@ export async function extractConcepts(input = featuredLesson.original) {
 }
 
 export async function askTutor(input: string, question?: string) {
-  return callOpenAI(
+  return callAI(
     "Answer as Adaptiva, an accessibility-first learning assistant. Use respectful, simple, context-aware explanations.",
     `Content:\n${input}\n\nQuestion:\n${question ?? "Explain this differently."}`,
     "Think of DNA as a recipe book. Before a cell divides, it needs a second copy. DNA opens, each half guides a matching new half, and the cell ends with two complete copies."

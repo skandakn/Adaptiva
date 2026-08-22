@@ -20,28 +20,37 @@ function uid() {
 }
 
 async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string | null> {
-  if (!process.env.OPENAI_API_KEY) return null;
-  if ((process.env.AI_PROVIDER ?? "openai") !== "openai") return null;
+  const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+  const isGroq = !process.env.OPENAI_API_KEY && Boolean(process.env.GROQ_API_KEY);
+  const endpoint = isGroq
+    ? "https://api.groq.com/openai/v1/chat/completions"
+    : "https://api.openai.com/v1/chat/completions";
+  const model = isGroq
+    ? (process.env.AI_MODEL || "llama-3.3-70b-versatile")
+    : (process.env.AI_MODEL && !process.env.AI_MODEL.includes("gpt-4.1") ? process.env.AI_MODEL : "gpt-4o-mini");
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL ?? "gpt-4.1-mini",
-        input: [
+        model,
+        messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
-        ]
+        ],
+        temperature: 0.2
       })
     });
 
     if (!response.ok) return null;
-    const data = (await response.json()) as { output_text?: string };
-    return data.output_text?.trim() ?? null;
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    return typeof content === "string" ? content.trim() : null;
   } catch {
     return null;
   }

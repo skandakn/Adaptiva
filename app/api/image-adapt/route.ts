@@ -5,11 +5,12 @@ import { imageAdaptPayloadSchema } from "@/lib/api/validation";
 export async function POST(request: Request) {
   try {
     const payload = imageAdaptPayloadSchema.parse(await request.json());
-    const result = await analyzeUploadedImage(payload.action, payload.image, payload.filename);
+    const outcome = await analyzeUploadedImage(payload.action, payload.image, payload.filename);
 
     return ok({
       action: payload.action,
-      result
+      result: outcome.result,
+      fallback: outcome.fallback
     });
   } catch (error) {
     return handleApiError(error);
