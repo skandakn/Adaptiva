@@ -252,7 +252,7 @@ export const progressData = Array.from({ length: 7 }, (_, index) => {
   const isToday = index === 6;
   return {
     name: isToday ? "Today" : weekday.format(date),
-    focus: isToday ? 25 : 0,
+    focus: isToday ? 43 : 0,
     concepts: isToday ? 3 : 0
   };
 });

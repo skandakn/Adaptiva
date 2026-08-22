@@ -75,7 +75,7 @@ const sessions: SessionRow[] = [
     mode: "Focus",
     started_at: now(),
     completed_at: now(),
-    duration_seconds: 1500
+    duration_seconds: 2580
   }
 ];
 
