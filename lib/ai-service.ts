@@ -53,6 +53,23 @@ async function callOpenAI(instructions: string, input: string, fallback: string)
   }
 }
 
+function getResponseOutputText(data: unknown) {
+  if (data && typeof data === "object" && "output_text" in data && typeof (data as { output_text?: unknown }).output_text === "string") {
+    return (data as { output_text: string }).output_text.trim();
+  }
+
+  if (!data || typeof data !== "object" || !("output" in data) || !Array.isArray((data as { output?: unknown }).output)) {
+    return "";
+  }
+
+  return (data as { output: Array<{ content?: Array<{ text?: unknown; type?: unknown }> }> }).output
+    .flatMap((item) => item.content ?? [])
+    .map((item) => (typeof item.text === "string" ? item.text : ""))
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 function describeImageFallback(action: ImageAdaptAction, filename: string, image: string) {
   const mime = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/)?.[1] ?? "uploaded image";
   const sizeBytes = Math.round(((image.split(",")[1]?.length ?? 0) * 3) / 4);
@@ -119,8 +136,8 @@ export async function analyzeUploadedImage(action: ImageAdaptAction, image: stri
     });
 
     if (!response.ok) return fallback;
-    const data = (await response.json()) as { output_text?: string };
-    return data.output_text?.trim() || fallback;
+    const data = await response.json();
+    return getResponseOutputText(data) || fallback;
   } catch {
     return fallback;
   }

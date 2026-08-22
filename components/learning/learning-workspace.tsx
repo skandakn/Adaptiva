@@ -56,6 +56,10 @@ type AdaptResponse = {
 
 type TranslatedContent = Partial<Record<LearningMode, string>>;
 type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
+type ImageResult = {
+  action: ImageAdaptAction;
+  text: string;
+};
 
 function stringifyResult(result: unknown) {
   if (typeof result === "string") return result;
@@ -89,7 +93,7 @@ export function LearningWorkspace() {
   const [status, setStatus] = useState("Demo lesson loaded.");
   const [language, setLanguage] = useState<ContentLanguage>("English");
   const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
-  const [imageResult, setImageResult] = useState<string | null>(null);
+  const [imageResult, setImageResult] = useState<ImageResult | null>(null);
   const [uploadedImage, setUploadedImage] = useState<{ name: string; dataUrl: string } | null>(null);
   const [imageBusy, setImageBusy] = useState<ImageAdaptAction | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
@@ -245,22 +249,34 @@ export function LearningWorkspace() {
     reader.onload = () => {
       const dataUrl = typeof reader.result === "string" ? reader.result : "";
       setUploadedImage({ name: file.name, dataUrl });
-      setImageResult(`Uploaded image: ${file.name}\n\nChoose a button to analyze this image or scanned document.`);
+      setImageResult({
+        action: "Simple explanation",
+        text: `Uploaded image: ${file.name}\n\nChoose a button to analyze this image or scanned document.`
+      });
     };
     reader.onerror = () => {
-      setImageResult("Could not read this image. Try another file.");
+      setImageResult({
+        action: "Simple explanation",
+        text: "Could not read this image. Try another file."
+      });
     };
     reader.readAsDataURL(file);
   }
 
   async function runImageAction(action: ImageAdaptAction) {
     if (!uploadedImage) {
-      setImageResult("Upload an image first, then choose an explanation style.");
+      setImageResult({
+        action,
+        text: "Upload an image first, then choose an explanation style."
+      });
       return;
     }
 
     setImageBusy(action);
-    setImageResult(`${action} is reading ${uploadedImage.name}...`);
+    setImageResult({
+      action,
+      text: `${action} is reading ${uploadedImage.name}...`
+    });
     try {
       const response = await fetch("/api/image-adapt", {
         method: "POST",
@@ -273,9 +289,15 @@ export function LearningWorkspace() {
       });
       const payload = (await response.json()) as { result?: string; error?: { message?: string } };
       if (!response.ok) throw new Error(payload.error?.message ?? "Image explanation failed.");
-      setImageResult(payload.result ?? "No explanation was returned for this image.");
+      setImageResult({
+        action,
+        text: payload.result?.trim() || "No explanation was returned for this image."
+      });
     } catch (error) {
-      setImageResult(error instanceof Error ? error.message : "Could not explain the uploaded image.");
+      setImageResult({
+        action,
+        text: error instanceof Error ? error.message : "Could not explain the uploaded image."
+      });
     } finally {
       setImageBusy(null);
     }
@@ -485,7 +507,7 @@ export function LearningWorkspace() {
                 key={item}
                 type="button"
                 className="flex min-h-14 items-center gap-2 rounded-card border border-ink/10 bg-paper px-4 text-left font-black text-ink transition hover:border-moss/40 hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!uploadedImage || Boolean(imageBusy)}
+                disabled={Boolean(imageBusy)}
                 onClick={() => void runImageAction(item)}
               >
                 <CheckCircle2 aria-hidden="true" className="text-moss" size={18} />
@@ -493,8 +515,11 @@ export function LearningWorkspace() {
               </button>
             ))}
           </div>
-          <div className="mt-5 min-h-28 whitespace-pre-line rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
-            {imageResult ?? "Upload an image or scanned document first. Then use these buttons to get information from that uploaded file."}
+          <div className="mt-5 min-h-28 rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
+            <p className="font-black text-ink">{imageResult?.action ?? "Image result"}</p>
+            <p className="mt-2 whitespace-pre-line">
+              {imageResult?.text ?? "Upload an image or scanned document first. Then use these buttons to get information from that uploaded file."}
+            </p>
           </div>
         </Panel>
       </section>
