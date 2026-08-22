@@ -475,15 +475,17 @@ export function LearningWorkspace() {
           </Button>
         </Panel>
         <Panel>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Adaptive Difficulty</p>
-          <h2 className="mt-2 text-2xl font-black text-ink">Adaptiva noticed this concept may need another explanation.</h2>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Uploaded Image Support</p>
+          <h2 className="mt-2 text-2xl font-black text-ink">
+            Choose how Adaptiva should explain the uploaded image.
+          </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {(["Simple explanation", "Example", "Visual explanation", "Step-by-step"] as ImageAdaptAction[]).map((item) => (
               <button
                 key={item}
                 type="button"
-                className="flex min-h-14 items-center gap-2 rounded-card border border-ink/10 bg-paper px-4 text-left font-black text-ink transition hover:border-moss/40 hover:bg-cloud"
-                disabled={Boolean(imageBusy)}
+                className="flex min-h-14 items-center gap-2 rounded-card border border-ink/10 bg-paper px-4 text-left font-black text-ink transition hover:border-moss/40 hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!uploadedImage || Boolean(imageBusy)}
                 onClick={() => void runImageAction(item)}
               >
                 <CheckCircle2 aria-hidden="true" className="text-moss" size={18} />
@@ -492,7 +494,7 @@ export function LearningWorkspace() {
             ))}
           </div>
           <div className="mt-5 min-h-28 whitespace-pre-line rounded-card bg-paper p-4 text-sm leading-7 text-graphite">
-            {imageResult ?? "Upload a scanned page or use the mock OCR fallback to see extracted text, simplified text, audio, key points, and explanation."}
+            {imageResult ?? "Upload an image or scanned document first. Then use these buttons to get information from that uploaded file."}
           </div>
         </Panel>
       </section>
