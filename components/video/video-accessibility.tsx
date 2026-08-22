@@ -14,11 +14,27 @@ type TranscriptSegment = {
 
 type VideoProcessPayload = {
   transcription?: {
+    text?: string;
     segments?: TranscriptSegment[];
   };
   summary?: string;
   error?: { message?: string };
 };
+
+type GenerateNotesPayload = {
+  notes?: string;
+  error?: { message?: string };
+};
+
+function getCompleteTranscript(transcription: VideoProcessPayload["transcription"], segments: TranscriptSegment[]) {
+  const fullText = transcription?.text?.trim();
+  if (fullText) return fullText;
+  return segments
+    .map((segment) => segment.text.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
 
 function formatTimestamp(seconds: number) {
   return `${seconds.toFixed(2)}s`;
@@ -28,6 +44,8 @@ export function VideoAccessibility() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [rawTranscript, setRawTranscript] = useState("");
+  const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("Demo transcript is ready.");
   const [saved, setSaved] = useState(false);
   const [summary, setSummary] = useState(featuredLesson.simplified);
@@ -45,6 +63,8 @@ export function VideoAccessibility() {
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     setUploadedVideoFile(file);
     setTranscriptSegments([]);
+    setRawTranscript("");
+    setNotes("");
     setVideoUrl(URL.createObjectURL(file));
     setStatus("Video loaded. Demo transcription pipeline is active.");
     void transcribeUploadedVideo(file);
@@ -64,7 +84,9 @@ export function VideoAccessibility() {
       });
       const payload = (await response.json()) as VideoProcessPayload;
       if (!response.ok) throw new Error(payload.error?.message ?? "Video transcription failed.");
-      setTranscriptSegments(payload.transcription?.segments ?? []);
+      const segments = payload.transcription?.segments ?? [];
+      setTranscriptSegments(segments);
+      setRawTranscript(getCompleteTranscript(payload.transcription, segments));
       setStatus("Timestamped transcript generated from uploaded video.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Video transcription is unavailable.");
@@ -92,6 +114,7 @@ export function VideoAccessibility() {
       if (!response.ok) throw new Error(payload.error?.message ?? "Video processing failed.");
       const segments = payload.transcription?.segments ?? [];
       setTranscriptSegments(segments);
+      setRawTranscript(getCompleteTranscript(payload.transcription, segments));
       if (payload.summary) setSummary(payload.summary);
       if (action === "subtitles") setStatus("Timestamped transcript generated from uploaded video.");
       if (action === "simplify") setStatus(payload.summary ?? featuredLesson.simplified);
@@ -104,7 +127,36 @@ export function VideoAccessibility() {
     }
   }
 
+  async function generateNotes() {
+    const transcript =
+      rawTranscript.trim() ||
+      transcriptSegments
+        .map((segment) => segment.text.trim())
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+    try {
+      setStatus("Generating notes from transcript...");
+      const response = await fetch("/api/generate-notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ transcript })
+      });
+      const payload = (await response.json()) as GenerateNotesPayload;
+      if (!response.ok) throw new Error(payload.error?.message ?? "Notes could not be generated.");
+      if (!payload.notes?.trim()) throw new Error("Notes could not be generated.");
+      setNotes(payload.notes);
+      setStatus("Notes generated from the video transcript.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Notes could not be generated.");
+    }
+  }
+
   return (
+    <div className="grid gap-6">
     <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
       <Panel>
         <div className="flex items-start justify-between gap-4">
@@ -137,7 +189,7 @@ export function VideoAccessibility() {
           )}
         </div>
         <div className="mt-4">
-          <Button type="button" className="w-full sm:w-auto">
+          <Button type="button" className="w-full sm:w-auto" onClick={() => void generateNotes()}>
             Generate Notes
           </Button>
         </div>
@@ -191,6 +243,16 @@ export function VideoAccessibility() {
           {saved ? "Accessible video material saved in demo mode." : "Demo data is clearly separated from real upload flow."}
         </p>
       </Panel>
+    </div>
+      {notes ? (
+        <Panel>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Generated notes</p>
+          <h2 className="mt-2 text-3xl font-black text-ink">AI video notes</h2>
+          <div className="mt-5 rounded-card bg-paper p-4">
+            <ReadingContent className="text-sm leading-7 text-graphite" text={notes} />
+          </div>
+        </Panel>
+      ) : null}
     </div>
   );
 }

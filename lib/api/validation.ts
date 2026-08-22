@@ -122,6 +122,10 @@ export const videoProcessSchema = z.object({
   save_material: z.boolean().default(true)
 });
 
+export const generateNotesPayloadSchema = z.object({
+  transcript: z.string().max(50000)
+});
+
 export const figureTypeSchema = z.enum([
   "auto",
   "process",
