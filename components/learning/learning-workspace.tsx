@@ -57,7 +57,7 @@ type AdaptResponse = {
 type TranslatedContent = Partial<Record<LearningMode, string>>;
 type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
 type ImageResult = {
-  action: ImageAdaptAction;
+  action: ImageAdaptAction | "Image uploaded";
   text: string;
 };
 
@@ -182,6 +182,7 @@ export function LearningWorkspace() {
   const [imageBusy, setImageBusy] = useState<ImageAdaptAction | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageActionRef = useRef<ImageAdaptAction | null>(null);
+  const imageOcrTextRef = useRef<{ dataUrl: string; text: string } | null>(null);
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
@@ -342,6 +343,11 @@ export function LearningWorkspace() {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      if (!dataUrl) {
+        setImageResult({ action: "Image uploaded", text: "Could not read this image. Try another file." });
+        return;
+      }
+      imageOcrTextRef.current = null;
       setUploadedImage({ name: file.name, dataUrl });
       const pendingAction = pendingImageActionRef.current;
       pendingImageActionRef.current = null;
@@ -361,6 +367,17 @@ export function LearningWorkspace() {
       });
     };
     reader.readAsDataURL(file);
+    // Permit selecting the same file again after a failed or completed scan.
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  }
+
+  async function readImageLocally(selectedImage: { name: string; dataUrl: string }) {
+    if (imageOcrTextRef.current?.dataUrl === selectedImage.dataUrl) return imageOcrTextRef.current.text;
+    const tesseract = await loadTesseractRuntime();
+    const ocrResult = await tesseract.recognize(selectedImage.dataUrl, "eng");
+    const text = ocrResult.data.text;
+    imageOcrTextRef.current = { dataUrl: selectedImage.dataUrl, text };
+    return text;
   }
 
   async function runImageAction(action: ImageAdaptAction, selectedImage = uploadedImage) {
@@ -389,25 +406,23 @@ export function LearningWorkspace() {
           filename: selectedImage.name
         })
       });
-      const payload = (await response.json()) as { result?: string; error?: { message?: string } };
+      const payload = (await response.json()) as { result?: string; fallback?: boolean; error?: { message?: string } };
       if (!response.ok) throw new Error(payload.error?.message ?? "Image explanation failed.");
       const apiResult = payload.result?.trim() || "No explanation was returned for this image.";
-      if (shouldUseLocalOcr(apiResult)) {
+      if (payload.fallback || shouldUseLocalOcr(apiResult)) {
         setImageResult({
           action,
           text: `${apiResult}\n\nTrying local OCR on ${selectedImage.name}...`
         });
         try {
-          const tesseract = await loadTesseractRuntime();
-          const ocrResult = await tesseract.recognize(selectedImage.dataUrl, "eng");
           setImageResult({
             action,
-            text: formatOcrResult(action, selectedImage.name, ocrResult.data.text)
+            text: formatOcrResult(action, selectedImage.name, await readImageLocally(selectedImage))
           });
         } catch {
           setImageResult({
             action,
-            text: `${apiResult}\n\nLocal OCR could not load in this browser. The image is still available above; try a connection that permits the optional OCR helper, or configure an AI key for full image analysis.`
+            text: `I could not load the local OCR reader for ${selectedImage.name}. Check your internet connection and try again, or configure an AI key for full image analysis. The uploaded image preview remains available above.`
           });
         }
         return;
