@@ -21,19 +21,19 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { AdaptButton } from "@/components/learning/adapt-button";
 import { AudioPlayer } from "@/components/learning/audio-player";
-import { FocusMode } from "@/components/learning/focus-mode";
 import { MindMap } from "@/components/learning/mind-map";
 import { ReadingContent } from "@/components/reading/reading-content";
 import { useReadingMode } from "@/components/reading/reading-mode-provider";
 import { Button } from "@/components/ui/button";
 import { Badge, Panel } from "@/components/ui/panel";
-import { featuredLesson, keyConceptsByLanguage, mindMapsByLanguage } from "@/lib/demo-data";
+import { featuredLesson, mindMapsByLanguage } from "@/lib/demo-data";
 import { languageOptions } from "@/lib/i18n/languages";
 import { getReadingFontLabel } from "@/lib/reading-mode";
-import type { ContentLanguage, LearningMode, MindMapNode } from "@/lib/types";
+import type { ContentLanguage, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const modes: LearningMode[] = ["Original", "Simplified", "Focus", "Audio", "Visual"];
+const learningOptions = ["Simple Explanation", "Example", "Visual Explanation", "Step by Step"] as const;
+type LearningOption = (typeof learningOptions)[number];
 const imageModes = ["Original", "Simplified", "Example", "Step-by-Step", "Visual"] as const;
 type ImageLearningMode = (typeof imageModes)[number];
 
@@ -61,7 +61,6 @@ type AdaptResponse = {
   error?: { message?: string };
 };
 
-type TranslatedContent = Partial<Record<LearningMode, string>>;
 type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
 
 type TesseractRuntime = {
@@ -216,13 +215,17 @@ const demoScannedAdapted: Record<ImageLearningMode, string> = {
 
 export function LearningWorkspace() {
   const { preferences, speak } = useReadingMode();
-  const [mode, setMode] = useState<LearningMode>("Simplified");
-  const [adapted, setAdapted] = useState(featuredLesson.simplified);
+  const [mode, setMode] = useState<LearningOption>("Simple Explanation");
+  const [learningContent, setLearningContent] = useState<Partial<Record<LearningOption, string>>>({
+    "Simple Explanation": featuredLesson.simplified,
+    "Step by Step": featuredLesson.stepByStep.map((step, index) => `${index + 1}. ${step}`).join("\n")
+  });
+  const [learningBusy, setLearningBusy] = useState<LearningOption | null>(null);
+  const [learningError, setLearningError] = useState<Partial<Record<LearningOption, string>>>({});
   const [material, setMaterial] = useState<Material | null>(null);
   const [mindMap, setMindMap] = useState<MindMapNode>(featuredLesson.mindMap);
   const [status, setStatus] = useState("Demo lesson loaded.");
   const [language, setLanguage] = useState<ContentLanguage>("English");
-  const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
   
   // Image / Scanned Document state (Dual Panel Comparison Layout)
   const [activeImageMode, setActiveImageMode] = useState<ImageLearningMode>("Simplified");
@@ -241,17 +244,38 @@ export function LearningWorkspace() {
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
   const courseLabel = material?.description ?? featuredLesson.course;
-  const displayedText = translatedContent[mode] ?? (mode === "Original" ? sourceText : adapted);
-  const focusConcepts = keyConceptsByLanguage[language] ?? featuredLesson.keyConcepts;
-  const readingTransform = materialTitle.toLowerCase().includes("photosynthesis")
-    ? "Photosynthesis\n\nPlants use sunlight to make food.\n\nMain idea:\nSUNLIGHT\nPLANT\nFOOD"
-    : `${materialTitle}\n\nA cell copies its DNA before it divides.\n\nMain idea:\nDNA OPENS\nMATCHING BASES JOIN\nTWO COPIES FORM`;
+  const displayedText = learningContent[mode] ?? "";
 
-  function contentForMode(learningMode: LearningMode) {
-    if (learningMode === "Original") return sourceText;
-    if (learningMode === "Focus") return focusConcepts.join("\n");
-    if (learningMode === "Visual" || learningMode === "Audio") return adapted;
-    return adapted;
+  async function generateLearningContent(target: Exclude<LearningOption, "Visual Explanation">) {
+    if (learningContent[target]) return;
+
+    const action = target === "Simple Explanation" ? "simplify" : target === "Example" ? "example" : "step-by-step";
+    setLearningBusy(target);
+    setLearningError((current) => ({ ...current, [target]: "" }));
+    try {
+      const response = await fetch("/api/adapt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, text: sourceText, language, material_id: material?.id, save_as_note: false })
+      });
+      const payload = (await response.json()) as AdaptResponse;
+      if (!response.ok) throw new Error(payload.error?.message ?? "Could not create this learning view.");
+      const result = stringifyResult(payload.result).trim();
+      if (!result) throw new Error("No learning content was returned. Please try again.");
+      setLearningContent((current) => ({ ...current, [target]: result }));
+    } catch (error) {
+      setLearningError((current) => ({
+        ...current,
+        [target]: error instanceof Error ? error.message : "Could not create this learning view."
+      }));
+    } finally {
+      setLearningBusy(null);
+    }
+  }
+
+  function selectLearningOption(nextMode: LearningOption) {
+    setMode(nextMode);
+    if (nextMode !== "Visual Explanation") void generateLearningContent(nextMode);
   }
 
   useEffect(() => {
@@ -270,7 +294,8 @@ export function LearningWorkspace() {
         const nextMaterial = payload.material ?? payload.materials?.[0] ?? null;
         if (nextMaterial) {
           setMaterial(nextMaterial);
-          setAdapted(nextMaterial.original_content);
+          setLearningContent({});
+          setLearningError({});
           setStatus(payload.mode === "demo" ? "Demo material loaded from API fallback." : "Saved material loaded.");
         }
       } catch {
@@ -280,6 +305,12 @@ export function LearningWorkspace() {
 
     void loadMaterial();
   }, []);
+
+  useEffect(() => {
+    if (mode !== "Visual Explanation") void generateLearningContent(mode);
+    // A new material clears the cache above; this effect creates the selected learning view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceText]);
 
   async function runAction(action: string) {
     setStatus(`${action} is processing...`);
@@ -294,8 +325,11 @@ export function LearningWorkspace() {
 
     const apiAction = actionMap[action];
     if (action === "Read Aloud") {
-      setMode("Audio");
-      speak(displayedText);
+      if (mode === "Visual Explanation") {
+        setStatus("Visual Explanation is a mind map. Select a text-based learning option to read it aloud.");
+        return;
+      }
+      speak(displayedText || sourceText);
       setStatus("Reading aloud with sentence highlighting.");
       return;
     }
@@ -320,7 +354,7 @@ export function LearningWorkspace() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: apiAction,
-          text: action === "Translate" ? contentForMode(mode) : sourceText,
+          text: action === "Translate" ? displayedText || sourceText : sourceText,
           language: nextLanguage,
           mind_map: mindMap,
           material_id: material?.id,
@@ -333,21 +367,19 @@ export function LearningWorkspace() {
       if (apiAction === "translate") {
         const translatedText = stringifyResult(payload.result);
         setLanguage(nextLanguage);
-        setTranslatedContent((current) => ({
-          ...current,
-          Simplified: translatedText,
-          ...(mode === "Original" || mode === "Focus" || mode === "Audio" ? { [mode]: translatedText } : {})
-        }));
-        setAdapted(translatedText);
+        if (mode !== "Visual Explanation") {
+          setLearningContent((current) => ({ ...current, [mode]: translatedText }));
+        }
         const translatedMap = mindMapFromResult(payload.result) ?? mindMapsByLanguage[nextLanguage];
         setMindMap(translatedMap);
         setStatus(`Translated to ${nextLanguage}. Visual mode keeps the same concept-map layout.`);
       } else if (apiAction === "mind-map" && payload.result && typeof payload.result === "object" && "label" in payload.result) {
         setMindMap(payload.result as MindMapNode);
-        setMode("Visual");
+        setMode("Visual Explanation");
       } else {
-        setAdapted(stringifyResult(payload.result));
-        setMode("Simplified");
+        const target = apiAction === "step-by-step" ? "Step by Step" : "Simple Explanation";
+        setLearningContent((current) => ({ ...current, [target]: stringifyResult(payload.result) }));
+        setMode(target);
       }
       if (apiAction !== "translate") setStatus(`${action} complete.`);
       void fetch("/api/progress", {
@@ -374,14 +406,14 @@ export function LearningWorkspace() {
         body: JSON.stringify({
           material_id: material?.id,
           title: `${materialTitle} - ${mode} note`,
-          content: adapted,
+          content: mode === "Visual Explanation" ? JSON.stringify(mindMap, null, 2) : displayedText,
           note_type: mode.toLowerCase()
         })
       });
       if (!response.ok) throw new Error("Could not save note.");
       setStatus("Adapted note saved.");
     } catch {
-      setStatus("Could not save note to persistence. The adapted content remains visible.");
+      setStatus("Could not save note to persistence. The learning content remains visible.");
     }
   }
 
@@ -536,8 +568,9 @@ export function LearningWorkspace() {
       content_type: "image",
       original_content: extractedImageText
     });
-    setAdapted(imageAdaptedByMode[activeImageMode] || extractedImageText);
-    setMode("Simplified");
+    setLearningContent({});
+    setLearningError({});
+    setMode("Simple Explanation");
     setStatus(`Loaded "${title}" into main adaptive workspace.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -546,11 +579,6 @@ export function LearningWorkspace() {
     activeImageMode === "Original"
       ? extractedImageText
       : imageAdaptedByMode[activeImageMode] || extractedImageText;
-
-  useEffect(() => {
-    if (mode === "Original") setStatus("Showing original source material.");
-    if (mode === "Focus") setStatus("Focus mode hides non-essential content.");
-  }, [mode]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -576,8 +604,8 @@ export function LearningWorkspace() {
       <div className="mt-8">
         <AdaptButton
           onComplete={() => {
-            setMode("Simplified");
-            setAdapted(featuredLesson.simplified);
+            setMode("Simple Explanation");
+            setLearningContent((current) => ({ ...current, "Simple Explanation": featuredLesson.simplified }));
             setStatus("Adaptiva created a simplified, chunked, audio-ready learning mode.");
           }}
         />
@@ -585,7 +613,7 @@ export function LearningWorkspace() {
 
       {/* Main Learning Modes Tabs */}
       <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Learning modes">
-        {modes.map((item) => (
+        {learningOptions.map((item) => (
           <button
             key={item}
             type="button"
@@ -595,7 +623,7 @@ export function LearningWorkspace() {
               "min-h-11 rounded-card border px-4 text-sm font-black transition",
               mode === item ? "border-ink bg-ink text-white" : "border-ink/10 bg-white text-graphite hover:bg-cloud"
             )}
-            onClick={() => setMode(item)}
+            onClick={() => selectLearningOption(item)}
           >
             {item}
           </button>
@@ -622,28 +650,36 @@ export function LearningWorkspace() {
               <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">
                 Adapted by Adaptiva
               </p>
-              <h2 className="mt-2 text-2xl font-black text-ink">{mode} Mode</h2>
+              <h2 className="mt-2 text-2xl font-black text-ink">{mode}</h2>
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
                 English
               </span>
-              <AudioPlayer text={displayedText} />
+              {mode !== "Visual Explanation" && <AudioPlayer text={displayedText} />}
             </div>
           </div>
-          {mode === "Visual" ? (
+          {mode === "Visual Explanation" ? (
             <div className="mt-5">
               <MindMap data={mindMap} />
             </div>
-          ) : mode === "Focus" ? (
-            <div className="mt-5">
-              <FocusMode concepts={focusConcepts} title={materialTitle} />
-            </div>
           ) : (
-            <ReadingContent
-              className="mt-5 text-lg leading-9 text-ink"
-              text={mode === "Original" ? readingTransform : displayedText}
-            />
+            <div className="mt-5">
+              {learningBusy === mode ? (
+                <div className="flex min-h-32 items-center gap-3 text-graphite" role="status">
+                  <Loader2 aria-hidden="true" className="animate-spin text-moss" size={22} />
+                  Creating your {mode.toLowerCase()}…
+                </div>
+              ) : learningError[mode] ? (
+                <p className="rounded-card border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800" role="alert">
+                  {learningError[mode]}
+                </p>
+              ) : displayedText ? (
+                <ReadingContent className="text-lg leading-9 text-ink" text={displayedText} />
+              ) : (
+                <p className="text-graphite">Choose this option to create a learning view from the original content.</p>
+              )}
+            </div>
           )}
         </Panel>
       </div>

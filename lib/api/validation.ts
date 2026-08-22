@@ -58,6 +58,7 @@ export const progressCreateSchema = z.object({
 export const adaptPayloadSchema = z.object({
   action: z.enum([
     "simplify",
+    "example",
     "summarize",
     "step-by-step",
     "mind-map",

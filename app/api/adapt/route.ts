@@ -2,6 +2,7 @@ import {
   askTutor,
   explainStepByStep,
   extractConcepts,
+  generateExample,
   generateMindMap,
   generateQuiz,
   simplifyText,
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
 
     let result: unknown;
     if (payload.action === "simplify") result = await simplifyText(payload.text, payload.level);
+    if (payload.action === "example") result = await generateExample(payload.text);
     if (payload.action === "summarize") result = await summarizeContent(payload.text);
     if (payload.action === "step-by-step") result = await explainStepByStep(payload.text);
     if (payload.action === "mind-map") result = await generateMindMap(payload.text, payload.language);

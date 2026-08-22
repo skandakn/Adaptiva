@@ -342,6 +342,14 @@ export async function simplifyText(input: string, level: Level) {
   );
 }
 
+export async function generateExample(input: string) {
+  return callAI(
+    "Create one concise, concrete example that helps a beginner understand the educational content. Choose the most useful type of example for the topic. Preserve the core idea, but do not restate or summarize the source text. Use clear language.",
+    input,
+    "Example: imagine the main idea as a familiar everyday process. Each important part has a clear job, and together those jobs produce the result described in the lesson."
+  );
+}
+
 export async function summarizeContent(input: string) {
   return callAI(
     "Summarize educational content for a learner who benefits from low cognitive load. Use short, clear sentences.",
