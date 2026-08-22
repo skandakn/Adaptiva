@@ -61,6 +61,23 @@ type ImageResult = {
   text: string;
 };
 
+type TesseractRuntime = {
+  recognize: (
+    image: string,
+    language: string
+  ) => Promise<{
+    data: {
+      text: string;
+    };
+  }>;
+};
+
+declare global {
+  interface Window {
+    Tesseract?: TesseractRuntime;
+  }
+}
+
 function stringifyResult(result: unknown) {
   if (typeof result === "string") return result;
   if (result && typeof result === "object" && "text" in result && typeof (result as { text?: unknown }).text === "string") {
@@ -122,6 +139,33 @@ function formatOcrResult(action: ImageAdaptAction, filename: string, rawText: st
   }
 
   return `Uploaded image: ${filename}\n\nSimple explanation:\n${mainText}`;
+}
+
+function loadTesseractRuntime() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+
+  return new Promise<TesseractRuntime>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-adaptiva-ocr="true"]');
+    if (existingScript) {
+      existingScript.addEventListener("load", () => {
+        if (window.Tesseract) resolve(window.Tesseract);
+        else reject(new Error("Local OCR did not load."));
+      });
+      existingScript.addEventListener("error", () => reject(new Error("Local OCR could not load.")));
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.async = true;
+    script.dataset.adaptivaOcr = "true";
+    script.onload = () => {
+      if (window.Tesseract) resolve(window.Tesseract);
+      else reject(new Error("Local OCR did not load."));
+    };
+    script.onerror = () => reject(new Error("Local OCR could not load."));
+    document.head.appendChild(script);
+  });
 }
 
 export function LearningWorkspace() {
@@ -353,12 +397,8 @@ export function LearningWorkspace() {
           action,
           text: `${apiResult}\n\nTrying local OCR on ${selectedImage.name}...`
         });
-        const tesseract = (await import("tesseract.js")) as typeof import("tesseract.js") & {
-          default?: typeof import("tesseract.js");
-        };
-        const recognize = tesseract.recognize ?? tesseract.default?.recognize;
-        if (!recognize) throw new Error("Local OCR is not available in this browser.");
-        const ocrResult = await recognize(selectedImage.dataUrl, "eng");
+        const tesseract = await loadTesseractRuntime();
+        const ocrResult = await tesseract.recognize(selectedImage.dataUrl, "eng");
         setImageResult({
           action,
           text: formatOcrResult(action, selectedImage.name, ocrResult.data.text)
