@@ -1,0 +1,134 @@
+<svg width="1200" height="520" viewBox="0 0 1200 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Card Gradients -->
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="glowBorder6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="520" rx="16" fill="#070d14"/>
+
+  <!-- Section Header -->
+  <g transform="translate(600, 48)">
+    <text x="0" y="0" text-anchor="middle" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="800" letter-spacing="2">MULTIMODAL INTELLIGENCE</text>
+    <text x="0" y="32" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800">Adaptive Accessibility Superpowers</text>
+  </g>
+
+  <!-- Row 1 Cards -->
+  <!-- Card 1: Dyslexia & Bionic Reading -->
+  <g transform="translate(40, 110)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder1)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#10b981" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">📖</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Dyslexia &amp; Bionic Reader</text>
+    <text x="80" y="60" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">OpenDyslexic &amp; Visual Anchors</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" line-height="1.5">
+      <tspan x="25" dy="0">Converts dense text into fixation points</tspan>
+      <tspan x="25" dy="18">and custom font weights that guide eye</tspan>
+      <tspan x="25" dy="18">tracking, reducing reading fatigue by 60%.</tspan>
+    </text>
+  </g>
+
+  <!-- Card 2: ADHD Sensory & Focus Rulers -->
+  <g transform="translate(420, 110)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder2)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#06b6d4" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">🎯</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">ADHD Focus Rulers</text>
+    <text x="80" y="60" fill="#06b6d4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">Sensory Reduction &amp; Masking</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">
+      <tspan x="25" dy="0">Dimmable reading masks and step-by-step</tspan>
+      <tspan x="25" dy="18">chunking that isolate one thought at a time,</tspan>
+      <tspan x="25" dy="18">preventing cognitive overload.</tspan>
+    </text>
+  </g>
+
+  <!-- Card 3: Dynamic Concept Mind Maps -->
+  <g transform="translate(800, 110)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder3)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#8b5cf6" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">🗺️</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Visual Mind Maps</text>
+    <text x="80" y="60" fill="#a78bfa" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">Spatial &amp; Graph Understanding</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">
+      <tspan x="25" dy="0">Auto-generates hierarchical concept</tspan>
+      <tspan x="25" dy="18">trees and relationship webs for spatial</tspan>
+      <tspan x="25" dy="18">and visual learners.</tspan>
+    </text>
+  </g>
+
+  <!-- Row 2 Cards -->
+  <!-- Card 4: Real-time Audio & TTS -->
+  <g transform="translate(40, 310)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder4)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#f59e0b" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">🎙️</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Live Speech &amp; Audio</text>
+    <text x="80" y="60" fill="#fbbf24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">Multimodal TTS &amp; Live Lecture STT</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">
+      <tspan x="25" dy="0">Live microphone lecture transcription with</tspan>
+      <tspan x="25" dy="18">real-time key concept extraction, summary</tspan>
+      <tspan x="25" dy="18">generation, and synchronized audio playback.</tspan>
+    </text>
+  </g>
+
+  <!-- Card 5: AI Socratic Tutor -->
+  <g transform="translate(420, 310)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder5)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#ec4899" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">🤖</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">AI Socratic Tutor</text>
+    <text x="80" y="60" fill="#f472b6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">24/7 Personalized Guidance</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">
+      <tspan x="25" dy="0">Context-aware tutor that answers questions,</tspan>
+      <tspan x="25" dy="18">generates targeted quizzes, and scaffolds</tspan>
+      <tspan x="25" dy="18">difficult concepts using analogies.</tspan>
+    </text>
+  </g>
+
+  <!-- Card 6: Vision OCR & Multimodal Ingestion -->
+  <g transform="translate(800, 310)">
+    <rect width="360" height="175" rx="12" fill="url(#cardGrad1)" stroke="url(#glowBorder6)" stroke-width="1.5"/>
+    <circle cx="45" cy="45" r="22" fill="#3b82f6" fill-opacity="0.15"/>
+    <text x="45" y="52" text-anchor="middle" font-size="20">👁️</text>
+    <text x="80" y="42" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Vision OCR &amp; Video</text>
+    <text x="80" y="60" fill="#60a5fa" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">Qwen 3.6 Vision / OCR Extraction</text>
+    <text x="25" y="100" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">
+      <tspan x="25" dy="0">Extract handwritten notes, textbook photos,</tspan>
+      <tspan x="25" dy="18">and video frames into accessible, high-</tspan>
+      <tspan x="25" dy="18">contrast, screen-reader friendly formats.</tspan>
+    </text>
+  </g>
+</svg>
