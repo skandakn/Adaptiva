@@ -1,11 +1,10 @@
 "use client";
 
-import { Captions, FileVideo, Save, Sparkles } from "lucide-react";
+import { Captions, FileVideo } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ReadingContent } from "@/components/reading/reading-content";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
-import { featuredLesson } from "@/lib/demo-data";
 
 type TranscriptSegment = {
   start: number;
@@ -47,8 +46,6 @@ export function VideoAccessibility() {
   const [rawTranscript, setRawTranscript] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("Demo transcript is ready.");
-  const [saved, setSaved] = useState(false);
-  const [summary, setSummary] = useState(featuredLesson.simplified);
 
   useEffect(() => {
     return () => {
@@ -90,40 +87,6 @@ export function VideoAccessibility() {
       setStatus("Timestamped transcript generated from uploaded video.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Video transcription is unavailable.");
-    }
-  }
-
-  async function processVideo(action: "subtitles" | "simplify" | "save") {
-    try {
-      if (!uploadedVideoFile) {
-        setStatus("Upload a video before processing.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("title", "DNA recorded video lesson");
-      formData.append("video", uploadedVideoFile);
-      formData.append("save_material", String(action === "save"));
-
-      setStatus("Processing recorded video through backend demo pipeline...");
-      const response = await fetch("/api/video/process", {
-        method: "POST",
-        body: formData
-      });
-      const payload = (await response.json()) as VideoProcessPayload;
-      if (!response.ok) throw new Error(payload.error?.message ?? "Video processing failed.");
-      const segments = payload.transcription?.segments ?? [];
-      setTranscriptSegments(segments);
-      setRawTranscript(getCompleteTranscript(payload.transcription, segments));
-      if (payload.summary) setSummary(payload.summary);
-      if (action === "subtitles") setStatus("Timestamped transcript generated from uploaded video.");
-      if (action === "simplify") setStatus(payload.summary ?? featuredLesson.simplified);
-      if (action === "save") {
-        setSaved(true);
-        setStatus("Accessible video transcript and summary saved.");
-      }
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Video processing is unavailable. Demo transcript remains visible.");
     }
   }
 
@@ -213,35 +176,6 @@ export function VideoAccessibility() {
                 text="Upload and process a video to see timestamped transcript segments."
               />
             </div>
-          )}
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {["Chapter generation", "Simplified explanation", "Concept extraction", "Focus mode"].map((item) => (
-            <span key={item} className="rounded-card border border-ink/10 bg-white px-3 py-3 text-sm font-black text-ink">
-              {item}
-            </span>
-          ))}
-        </div>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button type="button" variant="secondary" onClick={() => void processVideo("subtitles")}>
-            <Captions aria-hidden="true" size={18} />
-            Generate Subtitles
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void processVideo("simplify")}>
-            <Sparkles aria-hidden="true" size={18} />
-            Simplify
-          </Button>
-          <Button type="button" onClick={() => void processVideo("save")}>
-            <Save aria-hidden="true" size={18} />
-            Save
-          </Button>
-        </div>
-        <div className="mt-5 rounded-card bg-paper p-4">
-          <ReadingContent className="text-sm leading-7 text-graphite" text={summary} />
-        </div>
-        <p className="mt-4 min-h-6 text-sm font-bold text-moss">
-          {saved ? "Accessible video material saved in demo mode." : "Demo data is clearly separated from real upload flow."}
-        </p>
       </Panel>
     </div>
       {notes ? (
