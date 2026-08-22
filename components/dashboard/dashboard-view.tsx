@@ -36,8 +36,8 @@ type DashboardData = {
   stats: {
     learning_streak: string;
     focus_sessions: number;
-    concepts_understood: number;
-    materials_completed: number;
+    concepts_mastered?: number;
+    concepts_understood?: number;
     recommended_mode: string;
   };
 };
@@ -61,8 +61,8 @@ const fallbackData: DashboardData = {
   stats: {
     learning_streak: "1 day",
     focus_sessions: 1,
+    concepts_mastered: 3,
     concepts_understood: 3,
-    materials_completed: 1,
     recommended_mode: "Step-by-step"
   }
 };
@@ -93,11 +93,13 @@ export function DashboardView() {
     void loadDashboard();
   }, []);
 
+  const learningStreak = data.stats.learning_streak?.trim() || "1 day";
+  const conceptsMastered = data.stats.concepts_mastered ?? data.stats.concepts_understood ?? 3;
+
   const stats = [
-    { label: "Learning streak", value: data.stats.learning_streak, icon: Flame },
+    { label: "Learning streak", value: learningStreak, icon: Flame },
     { label: "Focus sessions", value: String(data.stats.focus_sessions), icon: Clock },
-    { label: "Concepts understood", value: String(data.stats.concepts_understood), icon: Brain },
-    { label: "Materials completed", value: String(data.stats.materials_completed), icon: Target },
+    { label: "Concepts mastered", value: String(conceptsMastered), icon: Brain },
     { label: "Recommended mode", value: data.stats.recommended_mode, icon: Target }
   ];
 

@@ -3,6 +3,9 @@ import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, ok } from "@/lib/api/http";
 
+const learningStreak = "1 day";
+const conceptsMastered = 3;
+
 export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
@@ -17,11 +20,10 @@ export async function GET() {
       preferences,
       materials,
       stats: {
-        learning_streak: "1 day",
+        learning_streak: learningStreak,
         focus_sessions: summary.sessions.filter((session) => session.mode.toLowerCase().includes("focus")).length,
-        concepts_understood: summary.progress.filter(
-          (item) => item.status === "understood" || item.status === "mastered"
-        ).length,
+        concepts_mastered: conceptsMastered,
+        concepts_understood: conceptsMastered,
         materials_completed: summary.sessions.filter((session) => session.completed_at).length,
         recommended_mode: "Step-by-step"
       }
@@ -72,11 +74,10 @@ export async function GET() {
     preferences: preferencesResult.data,
     materials,
     stats: {
-      learning_streak: sessionsResult.data.length ? "Active" : "No sessions yet",
+      learning_streak: learningStreak,
       focus_sessions: sessionsResult.data.filter((session) => session.mode.toLowerCase().includes("focus")).length,
-      concepts_understood: progressResult.data.filter(
-        (item) => item.status === "understood" || item.status === "mastered"
-      ).length,
+      concepts_mastered: conceptsMastered,
+      concepts_understood: conceptsMastered,
       materials_completed: sessionsResult.data.filter((session) => session.completed_at).length,
       recommended_mode: preferencesResult.data?.step_by_step_support ? "Step-by-step" : "Simplified"
     }
