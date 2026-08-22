@@ -3,7 +3,7 @@ import { Panel } from "@/components/ui/panel";
 
 const privacy = [
   "User data should be encrypted in transit.",
-  "Supabase Auth protects private content when environment variables are configured.",
+  "Clerk protects private content when authentication environment variables are configured.",
   "Uploaded documents should not be publicly accessible.",
   "API keys remain server-side through environment variables.",
   "Minimum necessary data collection.",
@@ -12,11 +12,11 @@ const privacy = [
 ];
 
 const implementationStatus = [
-  "Supabase Auth integration: implemented, requires Supabase env vars.",
-  "Database persistence: implemented through API routes and RLS migration.",
+  "Clerk authentication: implemented for sign-in, sign-up, route protection, and account controls.",
+  "Database persistence: Supabase-ready API routes and RLS migration remain available.",
   "AI provider: configurable server-side OpenAI Responses API with demo fallback.",
   "Video transcription: production-ready route shape; demo transcript fallback until a transcription service is configured.",
-  "Local demo mode: active when Supabase is not configured."
+  "Clerk-backed demo persistence: active when Clerk is configured without Supabase."
 ];
 
 export default function ArchitecturePage() {

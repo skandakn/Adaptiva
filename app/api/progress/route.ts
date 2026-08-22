@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { progressCreateSchema } from "@/lib/api/validation";
@@ -7,7 +7,7 @@ export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     return ok({ mode: auth.mode, ...demoStore.getProgressSummary() });
   }
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
+    if (usesDemoStore(auth.mode)) {
       const progress = demoStore.saveProgress({
         material_id: payload.material_id ?? null,
         concept: payload.concept,

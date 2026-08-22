@@ -18,7 +18,7 @@ type SessionRow = {
 };
 
 type ProgressPayload = {
-  mode: "demo" | "supabase";
+  mode: "clerk" | "demo" | "supabase";
   progress: ProgressRow[];
   sessions: SessionRow[];
   charts?: {
@@ -39,7 +39,13 @@ export function ProgressView() {
         const data = (await response.json()) as ProgressPayload;
         if (!response.ok) throw new Error(data.error?.message ?? "Could not load progress.");
         setPayload(data);
-        setMessage(data.mode === "demo" ? "Local demo progress is active." : "Loaded from Supabase.");
+        setMessage(
+          data.mode === "supabase"
+            ? "Loaded from Supabase."
+            : data.mode === "clerk"
+              ? "Signed in with Clerk. Demo progress is active."
+              : "Local demo progress is active."
+        );
       } catch {
         setMessage("Progress persistence is unavailable, so demo data is shown.");
       }

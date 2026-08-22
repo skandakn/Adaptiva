@@ -29,7 +29,7 @@ type DashboardMaterial = {
 };
 
 type DashboardData = {
-  mode: "demo" | "supabase";
+  mode: "clerk" | "demo" | "supabase";
   profile: DashboardProfile | null;
   preferences: DashboardPreferences | null;
   materials: DashboardMaterial[];
@@ -76,7 +76,13 @@ export function DashboardView() {
         const payload = (await response.json()) as DashboardData & { error?: { message?: string } };
         if (!response.ok) throw new Error(payload.error?.message ?? "Could not load dashboard.");
         setData(payload);
-        setMessage(payload.mode === "demo" ? "Local demo persistence is active." : "Loaded from Supabase.");
+        setMessage(
+          payload.mode === "supabase"
+            ? "Loaded from Supabase."
+            : payload.mode === "clerk"
+              ? "Signed in with Clerk. Demo persistence is active."
+              : "Local demo persistence is active."
+        );
       } catch {
         setMessage("Using demo dashboard because persistence is unavailable.");
       }

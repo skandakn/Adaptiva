@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { liveNoteSchema } from "@/lib/api/validation";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       ? `${payload.notes}\n\nTranscript:\n${payload.transcript}`
       : payload.transcript;
 
-    if (auth.mode === "demo") {
+    if (usesDemoStore(auth.mode)) {
       const material = payload.save_material
         ? demoStore.createMaterial({
             title: payload.title,

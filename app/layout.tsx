@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { AppLanguageProvider } from "@/components/i18n/language-provider";
 import { SiteShell } from "@/components/layout/site-shell";
@@ -18,11 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AppLanguageProvider>
-          <ReadingModeProvider>
-            <SiteShell>{children}</SiteShell>
-          </ReadingModeProvider>
-        </AppLanguageProvider>
+        <ClerkProvider afterSignOutUrl="/" signInUrl="/auth/sign-in" signUpUrl="/auth/sign-up">
+          <AppLanguageProvider>
+            <ReadingModeProvider>
+              <SiteShell>{children}</SiteShell>
+            </ReadingModeProvider>
+          </AppLanguageProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

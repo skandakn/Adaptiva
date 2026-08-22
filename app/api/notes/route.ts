@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { noteCreateSchema } from "@/lib/api/validation";
@@ -7,7 +7,7 @@ export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     return ok({ mode: auth.mode, notes: demoStore.listNotes() });
   }
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
+    if (usesDemoStore(auth.mode)) {
       return ok({
         mode: auth.mode,
         note: demoStore.createNote({ ...payload, material_id: payload.material_id ?? null })

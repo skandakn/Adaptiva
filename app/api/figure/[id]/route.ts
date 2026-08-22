@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 
 export async function GET(
@@ -10,9 +10,9 @@ export async function GET(
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
-      // In demo mode we don't persist, return a not-found
-      return fail(`Figure ${id} not found in demo mode.`, 404, "not_found");
+    if (usesDemoStore(auth.mode)) {
+      // Demo-store modes do not persist generated figures by id.
+      return fail(`Figure ${id} not found in demo persistence mode.`, 404, "not_found");
     }
 
     const { data, error } = await auth.supabase!
@@ -41,8 +41,8 @@ export async function DELETE(
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
-      return ok({ deleted: true, mode: "demo" });
+    if (usesDemoStore(auth.mode)) {
+      return ok({ deleted: true, mode: auth.mode });
     }
 
     const { error } = await auth.supabase!

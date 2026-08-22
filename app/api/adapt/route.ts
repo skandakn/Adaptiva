@@ -9,7 +9,7 @@ import {
   translateContent,
   translateMindMap
 } from "@/lib/ai-service";
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { adaptPayloadSchema } from "@/lib/api/validation";
 import { demoStore } from "@/lib/api/demo-store";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     if (payload.save_as_note && auth.userId) {
       const content = typeof result === "string" ? result : JSON.stringify(result, null, 2);
-      if (auth.mode === "demo") {
+      if (usesDemoStore(auth.mode)) {
         demoStore.createNote({
           material_id: payload.material_id ?? null,
           title: `Adaptiva ${payload.action}`,

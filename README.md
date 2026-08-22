@@ -71,10 +71,10 @@ The migration creates:
 
 The app now includes:
 
-- Supabase Auth pages and callback routes
-- Middleware-protected dashboard, learning, settings, progress, and teacher routes when Supabase is configured
+- Clerk sign-in, sign-up, account controls, and protected workspace routes
+- Supabase-ready persistence APIs remain available when Supabase is configured
 - API routes for profiles, materials, notes, live notes, video processing, dashboard data, progress, and adaptation
-- Demo fallback when Supabase or AI credentials are not configured
+- Demo fallback when Supabase persistence or AI credentials are not configured
 
 The UI calls clean service abstractions in `lib/ai-service.ts`:
 

@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { materialUpdateSchema } from "@/lib/api/validation";
@@ -12,7 +12,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     const material = demoStore.getMaterial(id);
     return material ? ok({ mode: auth.mode, material }) : fail("Material not found.", 404, "material_not_found");
   }
@@ -35,7 +35,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
+    if (usesDemoStore(auth.mode)) {
       const material = demoStore.updateMaterial(id, payload);
       return material ? ok({ mode: auth.mode, material }) : fail("Material not found.", 404, "material_not_found");
     }
@@ -60,7 +60,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     return demoStore.deleteMaterial(id)
       ? ok({ mode: auth.mode, deleted: true })
       : fail("Material not found.", 404, "material_not_found");

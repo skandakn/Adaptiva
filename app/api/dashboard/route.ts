@@ -1,5 +1,5 @@
 import { featuredLesson } from "@/lib/demo-data";
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, ok } from "@/lib/api/http";
 
@@ -7,7 +7,7 @@ export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     const { profile, preferences } = demoStore.getProfile();
     const materials = demoStore.listMaterials();
     const summary = demoStore.getProgressSummary();

@@ -6,6 +6,12 @@ export function isSupabaseConfigured() {
   );
 }
 
+export function isClerkConfigured() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
+  );
+}
+
 export function isExplicitDemoMode() {
   return process.env.NEXT_PUBLIC_ADAPTIVA_DEMO_MODE === "true";
 }
@@ -17,6 +23,9 @@ export function canUseDevelopmentFallback() {
 export function persistenceMode() {
   if (isSupabaseConfigured()) {
     return "supabase" as const;
+  }
+  if (isClerkConfigured()) {
+    return "clerk" as const;
   }
   if (canUseDevelopmentFallback()) {
     return "demo" as const;

@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/api/auth";
+import { requireApiUser, usesDemoStore } from "@/lib/api/auth";
 import { demoStore } from "@/lib/api/demo-store";
 import { fail, handleApiError, ok } from "@/lib/api/http";
 import { profilePayloadSchema } from "@/lib/api/validation";
@@ -27,7 +27,7 @@ export async function GET() {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
 
-  if (auth.mode === "demo") {
+  if (usesDemoStore(auth.mode)) {
     return ok({ mode: auth.mode, ...demoStore.getProfile() });
   }
 
@@ -72,7 +72,7 @@ export async function PUT(request: Request) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
 
-    if (auth.mode === "demo") {
+    if (usesDemoStore(auth.mode)) {
       return ok({ mode: auth.mode, ...demoStore.saveProfile(payload) });
     }
 

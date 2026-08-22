@@ -1,15 +1,16 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { isClerkConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/database.types";
 
 const protectedRoutes = ["/dashboard", "/learn", "/progress", "/settings", "/teacher"];
 
-export async function middleware(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.next();
-  }
+function isProtectedPath(pathname: string) {
+  return protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
 
+async function handleSupabaseMiddleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -29,12 +30,11 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const isProtected = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (isProtected && !user) {
+  if (isProtectedPath(request.nextUrl.pathname) && !user) {
     const signInUrl = request.nextUrl.clone();
     signInUrl.pathname = "/auth/sign-in";
     signInUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -44,6 +44,28 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+export default clerkMiddleware(async (auth, request) => {
+  if (isSupabaseConfigured()) {
+    return handleSupabaseMiddleware(request);
+  }
+
+  if (isClerkConfigured() && isProtectedPath(request.nextUrl.pathname)) {
+    const { userId } = await auth();
+
+    if (!userId) {
+      const signInUrl = request.nextUrl.clone();
+      signInUrl.pathname = "/auth/sign-in";
+      signInUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(signInUrl);
+    }
+  }
+
+  return NextResponse.next();
+});
+
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)"
+  ]
 };

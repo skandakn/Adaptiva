@@ -1,8 +1,9 @@
 "use client";
 
+import { Show, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogIn, Menu, X } from "lucide-react";
+import { LayoutDashboard, LogIn, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { Logo } from "@/components/layout/logo";
@@ -58,15 +59,26 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <div className="hidden items-center gap-3 lg:flex">
             <LanguageSwitcher />
             <ReadingModeQuickControl />
-            <Button variant="secondary" asChild>
-              <Link href="/auth/sign-in">
-                <LogIn aria-hidden="true" size={16} />
-                Sign in
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/onboarding">Try Adaptiva</Link>
-            </Button>
+            <Show when="signed-out">
+              <Button variant="secondary" asChild>
+                <Link href="/auth/sign-in">
+                  <LogIn aria-hidden="true" size={16} />
+                  Sign in
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/onboarding">Try Adaptiva</Link>
+              </Button>
+            </Show>
+            <Show when="signed-in">
+              <Button variant="secondary" asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard aria-hidden="true" size={16} />
+                  Dashboard
+                </Link>
+              </Button>
+              <UserButton />
+            </Show>
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
             <div className="hidden sm:block">
@@ -109,11 +121,26 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                   Try Adaptiva
                 </Link>
               </Button>
-              <Button variant="secondary" asChild>
-                <Link href="/auth/sign-in" onClick={() => setOpen(false)}>
-                  Sign in
-                </Link>
-              </Button>
+              <Show when="signed-out">
+                <Button variant="secondary" asChild>
+                  <Link href="/auth/sign-in" onClick={() => setOpen(false)}>
+                    Sign in
+                  </Link>
+                </Button>
+              </Show>
+              <Show when="signed-in">
+                <div className="mt-2 flex min-h-12 items-center justify-between rounded-card border border-ink/10 bg-paper px-4">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 text-sm font-black text-ink"
+                  >
+                    <LayoutDashboard aria-hidden="true" size={16} />
+                    Dashboard
+                  </Link>
+                  <UserButton />
+                </div>
+              </Show>
             </div>
           </nav>
         ) : null}
