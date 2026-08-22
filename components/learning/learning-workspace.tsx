@@ -84,6 +84,46 @@ function isMindMap(value: unknown): value is MindMapNode {
   return Boolean(value && typeof value === "object" && "id" in value && "label" in value);
 }
 
+function shouldUseLocalOcr(result: string) {
+  return (
+    result.includes("no available quota") ||
+    result.includes("Add an OpenAI API key") ||
+    result.includes("API key is invalid")
+  );
+}
+
+function cleanOcrText(text: string) {
+  return text
+    .split(/\n+/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function formatOcrResult(action: ImageAdaptAction, filename: string, rawText: string) {
+  const extractedText = cleanOcrText(rawText);
+  if (!extractedText) {
+    return `Uploaded image: ${filename}\n\nI could not read clear text from this image locally. Try a sharper scan, crop closer to the document, or add OpenAI quota for full image understanding.`;
+  }
+
+  const lines = extractedText.split("\n");
+  const mainText = lines.slice(0, 6).join("\n");
+
+  if (action === "Example") {
+    return `Uploaded image: ${filename}\n\nText found:\n${mainText}\n\nExample:\nThink of this scanned document as a small note. The important information is the readable text above, so use those lines as the main facts from the image.`;
+  }
+
+  if (action === "Visual explanation") {
+    return `Uploaded image: ${filename}\n\nVisible text found:\n${mainText}\n\nVisual explanation:\nThe image appears to contain a scanned document. Focus on the central document area and read the extracted text as the key information.`;
+  }
+
+  if (action === "Step-by-step") {
+    return `Uploaded image: ${filename}\n\nStep-by-step:\n${lines.map((line, index) => `${index + 1}. ${line}`).join("\n")}`;
+  }
+
+  return `Uploaded image: ${filename}\n\nSimple explanation:\n${mainText}`;
+}
+
 export function LearningWorkspace() {
   const { preferences, speak } = useReadingMode();
   const [mode, setMode] = useState<LearningMode>("Simplified");
@@ -307,9 +347,27 @@ export function LearningWorkspace() {
       });
       const payload = (await response.json()) as { result?: string; error?: { message?: string } };
       if (!response.ok) throw new Error(payload.error?.message ?? "Image explanation failed.");
+      const apiResult = payload.result?.trim() || "No explanation was returned for this image.";
+      if (shouldUseLocalOcr(apiResult)) {
+        setImageResult({
+          action,
+          text: `${apiResult}\n\nTrying local OCR on ${selectedImage.name}...`
+        });
+        const tesseract = (await import("tesseract.js")) as typeof import("tesseract.js") & {
+          default?: typeof import("tesseract.js");
+        };
+        const recognize = tesseract.recognize ?? tesseract.default?.recognize;
+        if (!recognize) throw new Error("Local OCR is not available in this browser.");
+        const ocrResult = await recognize(selectedImage.dataUrl, "eng");
+        setImageResult({
+          action,
+          text: formatOcrResult(action, selectedImage.name, ocrResult.data.text)
+        });
+        return;
+      }
       setImageResult({
         action,
-        text: payload.result?.trim() || "No explanation was returned for this image."
+        text: apiResult
       });
     } catch (error) {
       setImageResult({

@@ -127,6 +127,21 @@ function describeImageFallback(action: ImageAdaptAction, filename: string, image
   return `${base}\n\nSimple explanation: this is the uploaded image selected for analysis. Add an OpenAI API key to generate a simple explanation from the actual visible content.`;
 }
 
+async function getOpenAIErrorMessage(response: Response) {
+  try {
+    const data = (await response.json()) as { error?: { code?: string; message?: string } };
+    if (data.error?.code === "insufficient_quota") {
+      return "OpenAI could not analyze this image because the API key has no available quota. Check billing or add credits in the OpenAI dashboard, then try again.";
+    }
+    if (data.error?.code === "invalid_api_key") {
+      return "OpenAI could not analyze this image because the API key is invalid. Create a new key, update .env.local, and restart the app.";
+    }
+    return data.error?.message ?? "OpenAI could not analyze this image right now.";
+  } catch {
+    return "OpenAI could not analyze this image right now.";
+  }
+}
+
 export async function analyzeUploadedImage(action: ImageAdaptAction, image: string, filename: string) {
   const fallback = describeImageFallback(action, filename, image);
   if (!process.env.OPENAI_API_KEY || (process.env.AI_PROVIDER ?? "openai") !== "openai") {
@@ -173,7 +188,7 @@ export async function analyzeUploadedImage(action: ImageAdaptAction, image: stri
       })
     });
 
-    if (!response.ok) return fallback;
+    if (!response.ok) return await getOpenAIErrorMessage(response);
     const data = await response.json();
     return getResponseOutputText(data) || fallback;
   } catch {
