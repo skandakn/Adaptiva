@@ -15,6 +15,7 @@ import {
   MessageCircle,
   ScanText,
   Sparkles,
+  Upload,
   Volume2
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -33,6 +34,8 @@ import type { ContentLanguage, LearningMode, MindMapNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const modes: LearningMode[] = ["Original", "Simplified", "Focus", "Audio", "Visual"];
+const imageModes = ["Original", "Simplified", "Example", "Step-by-Step", "Visual"] as const;
+type ImageLearningMode = (typeof imageModes)[number];
 
 const actions = [
   { label: "Simplify", icon: Sparkles },
@@ -60,10 +63,6 @@ type AdaptResponse = {
 
 type TranslatedContent = Partial<Record<LearningMode, string>>;
 type ImageAdaptAction = "Simple explanation" | "Example" | "Visual explanation" | "Step-by-step";
-type ImageResult = {
-  action: ImageAdaptAction;
-  text: string;
-};
 
 type TesseractRuntime = {
   recognize: (
@@ -123,28 +122,59 @@ function cleanOcrText(text: string) {
     .join("\n");
 }
 
+function parseImageAnalysisOutput(rawOutput: string): { extractedText: string; adaptedText: string } {
+  if (!rawOutput) return { extractedText: "", adaptedText: "" };
+
+  const extractedMatch = rawOutput.match(/(?:###\s*(?:📄\s*)?Extracted Content|Extracted text from [^\n:]*:?)\n+([\s\S]*?)(?=\n+###|\n+💡|\n+Simple Explanation:|\n+Example Explanation:|\n+Visual & Structural Breakdown:|\n+Step-by-step Breakdown:|$)/i);
+  const adaptedMatch = rawOutput.match(/(?:###\s*(?:💡\s*)?(?:Simple explanation|Example|Visual explanation|Step-by-step|[^\n]+)|(?:Simple Explanation|Example Explanation|Visual & Structural Breakdown|Step-by-step Breakdown):?)\n+([\s\S]*$)/i);
+
+  if (extractedMatch && adaptedMatch && extractedMatch[1].trim() && adaptedMatch[1].trim()) {
+    return {
+      extractedText: extractedMatch[1].trim(),
+      adaptedText: adaptedMatch[1].trim()
+    };
+  }
+
+  const parts = rawOutput.split(/\n{2,}(?=Example Explanation:|Visual & Structural Breakdown:|Step-by-step Breakdown:|Simple Explanation:|Example:|Visual:|Step-by-step:|Simple:)/i);
+  if (parts.length >= 2) {
+    return {
+      extractedText: parts[0].replace(/^(?:Uploaded image|Extracted text from)[^\n]*\n+/i, "").trim(),
+      adaptedText: parts.slice(1).join("\n\n").trim()
+    };
+  }
+
+  return {
+    extractedText: rawOutput,
+    adaptedText: rawOutput
+  };
+}
+
 function formatOcrResult(action: ImageAdaptAction, filename: string, rawText: string) {
   const extractedText = cleanOcrText(rawText);
   if (!extractedText) {
-    return `Uploaded image: ${filename}\n\nI could not read clear text from this image. Try a sharper scan, higher contrast photo, or crop closer to the document.`;
+    return {
+      extractedText: `Uploaded image: ${filename}\nNo clear readable text could be recognized automatically. Try a sharper scan or photo.`,
+      adaptedText: `Could not recognize readable text from ${filename}. Please try uploading a clearer image.`
+    };
   }
 
   const lines = extractedText.split("\n");
-  const mainText = lines.join("\n");
 
+  let adapted = "";
   if (action === "Example") {
-    return `Extracted text from ${filename}:\n\n${mainText}\n\nExample Explanation:\nThink of this content like a reference sheet. For instance, notice the key points above ("${lines[0] || 'the main concept'}"): they act like the core rulebook that guides the rest of the subject.`;
+    adapted = `Think of this content like a reference sheet. For instance, notice the key points ("${lines[0] || 'the main concept'}"): they act like the core rulebook that guides the rest of the subject.`;
+  } else if (action === "Visual explanation") {
+    adapted = `• Content Overview: The uploaded document contains ${lines.length} readable line(s) organized into sections.\n• Key Headings: ${lines.slice(0, 2).join(" → ")}\n• Body Structure: The content extracted on the left contains the primary subject details.`;
+  } else if (action === "Step-by-step") {
+    adapted = lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
+  } else {
+    adapted = `Here is a simplified summary of the extracted content:\n\n${lines.join(" ")}`;
   }
 
-  if (action === "Visual explanation") {
-    return `Extracted text from ${filename}:\n\n${mainText}\n\nVisual & Structural Breakdown:\n• Content Overview: The uploaded document contains ${lines.length} readable line(s) of educational text.\n• Top / Section Header: ${lines.slice(0, 2).join(" → ")}\n• Key Body Information: The text extracted above represents the primary subject details.`;
-  }
-
-  if (action === "Step-by-step") {
-    return `Extracted text from ${filename}:\n\n${mainText}\n\nStep-by-step Breakdown:\n${lines.map((line, index) => `${index + 1}. ${line}`).join("\n")}`;
-  }
-
-  return `Extracted text from ${filename}:\n\n${mainText}\n\nSimple Explanation:\nHere is a simplified summary of the extracted content:\n${lines.join(" ")}`;
+  return {
+    extractedText,
+    adaptedText: adapted
+  };
 }
 
 function loadTesseractRuntime() {
@@ -169,10 +199,20 @@ function loadTesseractRuntime() {
       if (window.Tesseract) resolve(window.Tesseract);
       else reject(new Error("Local OCR did not load."));
     };
-    script.onerror = () => reject(new Error("Local OCR could not load."));
+    script.onerror = () => reject(new Error("Local OCR could not load.")));
     document.head.appendChild(script);
   });
 }
+
+// Initial demo scanned document state for demonstration
+const demoScannedOriginal = `Photosynthesis is a biochemical process by which photoautotrophic organisms convert light energy into chemical energy. In oxygenic photosynthesis, water functions as the electron donor, yielding molecular oxygen as a byproduct while reducing carbon dioxide into carbohydrate structures.`;
+const demoScannedAdapted: Record<ImageLearningMode, string> = {
+  Original: demoScannedOriginal,
+  Simplified: `Photosynthesis is how green plants make their own food using sunlight. Plants take in water from the soil and carbon dioxide from the air. Using sunlight, they produce sugars for energy and release oxygen for us to breathe.`,
+  Example: `Think of a plant leaf like a tiny solar-powered kitchen. Sunlight provides the electricity, water and air are the ingredients, and the plant cooks up sugar (food) while giving off fresh oxygen as clean steam.`,
+  "Step-by-Step": `1. Sunlight absorption: Green chlorophyll in plant leaves captures energy from sunlight.\n2. Taking in ingredients: The roots absorb water and the leaves take in carbon dioxide.\n3. Making sugar: Sunlight energy transforms water and carbon dioxide into glucose.\n4. Oxygen release: The plant releases clean oxygen gas into the atmosphere.`,
+  Visual: `• Structure Overview: Photosynthesis takes place inside the chloroplasts of plant leaves.\n• Inputs (Left): Sunlight + Water (H₂O) + Carbon Dioxide (CO₂)\n• Reaction Center: Light-dependent reactions in thylakoid membranes\n• Outputs (Right): Glucose (C₆H₁₂O₆) + Oxygen (O₂)`
+};
 
 export function LearningWorkspace() {
   const { preferences, speak } = useReadingMode();
@@ -184,16 +224,19 @@ export function LearningWorkspace() {
   const [language, setLanguage] = useState<ContentLanguage>("English");
   const [translatedContent, setTranslatedContent] = useState<TranslatedContent>({});
   
-  // Image / Scanned Document state
-  const [activeImageAction, setActiveImageAction] = useState<ImageAdaptAction>("Simple explanation");
-  const [imageResult, setImageResult] = useState<ImageResult | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<{ name: string; dataUrl: string } | null>(null);
-  const [imageBusy, setImageBusy] = useState<ImageAdaptAction | null>(null);
-  const [copiedImageResult, setCopiedImageResult] = useState(false);
+  // Image / Scanned Document state (Dual Panel Comparison Layout)
+  const [activeImageMode, setActiveImageMode] = useState<ImageLearningMode>("Simplified");
+  const [extractedImageText, setExtractedImageText] = useState<string>(demoScannedOriginal);
+  const [imageAdaptedByMode, setImageAdaptedByMode] = useState<Record<ImageLearningMode, string>>(demoScannedAdapted);
+  const [uploadedImage, setUploadedImage] = useState<{ name: string; dataUrl: string } | null>({
+    name: "sample-biology-scan.png",
+    dataUrl: "/hero-illustration.png"
+  });
+  const [imageBusy, setImageBusy] = useState<boolean>(false);
+  const [imageStatus, setImageStatus] = useState<string>("Sample scanned material loaded.");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingImageActionRef = useRef<ImageAdaptAction | null>(null);
   const imageOcrTextRef = useRef<{ dataUrl: string; text: string } | null>(null);
-  const imageCacheRef = useRef<Record<string, Partial<Record<ImageAdaptAction, string>>>>({});
+  const imageCacheRef = useRef<Record<string, Partial<Record<ImageLearningMode, { extracted: string; adapted: string }>>>>({});
 
   const sourceText = material?.original_content ?? featuredLesson.original;
   const materialTitle = material?.title ?? featuredLesson.title;
@@ -348,7 +391,7 @@ export function LearningWorkspace() {
     reader.onload = () => {
       const dataUrl = typeof reader.result === "string" ? reader.result : "";
       if (!dataUrl) {
-        setImageResult({ action: activeImageAction, text: "Could not read this image. Try another file." });
+        setImageStatus("Could not read image file. Please try another file.");
         return;
       }
       imageOcrTextRef.current = null;
@@ -356,19 +399,11 @@ export function LearningWorkspace() {
       const imgData = { name: file.name, dataUrl };
       setUploadedImage(imgData);
 
-      const targetAction = pendingImageActionRef.current ?? activeImageAction;
-      pendingImageActionRef.current = null;
-      setActiveImageAction(targetAction);
-
-      // Automatically extract information and analyze upon upload
-      void runImageAction(targetAction, imgData);
+      // Trigger automatic extraction & adaptation
+      void processImage(activeImageMode, imgData);
     };
     reader.onerror = () => {
-      pendingImageActionRef.current = null;
-      setImageResult({
-        action: activeImageAction,
-        text: "Could not read this image file. Please try another image."
-      });
+      setImageStatus("Could not read image file. Please try another image.");
     };
     reader.readAsDataURL(file);
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -383,39 +418,33 @@ export function LearningWorkspace() {
     return text;
   }
 
-  async function runImageAction(action: ImageAdaptAction, selectedImage = uploadedImage) {
-    setActiveImageAction(action);
+  function mapModeToAction(m: ImageLearningMode): ImageAdaptAction {
+    if (m === "Example") return "Example";
+    if (m === "Step-by-Step") return "Step-by-step";
+    if (m === "Visual") return "Visual explanation";
+    return "Simple explanation";
+  }
+
+  async function processImage(targetMode: ImageLearningMode, selectedImage = uploadedImage) {
+    setActiveImageMode(targetMode);
 
     if (!selectedImage) {
-      pendingImageActionRef.current = action;
       imageInputRef.current?.click();
       return;
     }
 
-    // Check if result for this specific action is already cached
-    const cached = imageCacheRef.current[selectedImage.dataUrl]?.[action];
+    // Check cache
+    const cached = imageCacheRef.current[selectedImage.dataUrl]?.[targetMode];
     if (cached) {
-      setImageResult({ action, text: cached });
-      setImageBusy(null);
+      setExtractedImageText(cached.extracted);
+      setImageAdaptedByMode((prev) => ({ ...prev, [targetMode]: cached.adapted }));
+      setImageStatus(`Showing ${targetMode} Mode from ${selectedImage.name}.`);
       return;
     }
 
-    // If local OCR text is already available for this image, instantly format it
-    if (imageOcrTextRef.current?.dataUrl === selectedImage.dataUrl && imageOcrTextRef.current.text) {
-      const formatted = formatOcrResult(action, selectedImage.name, imageOcrTextRef.current.text);
-      if (!imageCacheRef.current[selectedImage.dataUrl]) {
-        imageCacheRef.current[selectedImage.dataUrl] = {};
-      }
-      imageCacheRef.current[selectedImage.dataUrl]![action] = formatted;
-      setImageResult({ action, text: formatted });
-      return;
-    }
-
-    setImageBusy(action);
-    setImageResult({
-      action,
-      text: `Extracting text and generating ${action.toLowerCase()} for "${selectedImage.name}"...`
-    });
+    const action = mapModeToAction(targetMode);
+    setImageBusy(true);
+    setImageStatus(`Extracting & adapting ${selectedImage.name} (${targetMode} Mode)...`);
 
     try {
       const response = await fetch("/api/image-adapt", {
@@ -427,62 +456,96 @@ export function LearningWorkspace() {
           filename: selectedImage.name
         })
       });
+
       const payload = (await response.json()) as { result?: string; fallback?: boolean; error?: { message?: string } };
       if (!response.ok) throw new Error(payload.error?.message ?? "Image explanation failed.");
 
-      const apiResult = payload.result?.trim() || "No explanation was returned for this image.";
+      const apiResult = payload.result?.trim() || "";
 
       if (payload.fallback || shouldUseLocalOcr(apiResult)) {
-        setImageResult({
-          action,
-          text: `Extracting readable text via OCR from "${selectedImage.name}"...`
-        });
+        setImageStatus(`Transcribing "${selectedImage.name}" via OCR...`);
         try {
           const rawOcr = await readImageLocally(selectedImage);
-          const formatted = formatOcrResult(action, selectedImage.name, rawOcr);
+          const ocrFormatted = formatOcrResult(action, selectedImage.name, rawOcr);
 
+          setExtractedImageText(ocrFormatted.extractedText);
+          setImageAdaptedByMode((prev) => ({
+            ...prev,
+            Original: ocrFormatted.extractedText,
+            [targetMode]: ocrFormatted.adaptedText
+          }));
+
+          // Pre-populate cache for all modes
           if (!imageCacheRef.current[selectedImage.dataUrl]) {
             imageCacheRef.current[selectedImage.dataUrl] = {};
           }
-          imageCacheRef.current[selectedImage.dataUrl]![action] = formatted;
-
-          // Pre-cache other action modes from this OCR extraction
-          const allActions: ImageAdaptAction[] = ["Simple explanation", "Example", "Visual explanation", "Step-by-step"];
-          for (const act of allActions) {
-            imageCacheRef.current[selectedImage.dataUrl]![act] = formatOcrResult(act, selectedImage.name, rawOcr);
+          const allModes: ImageLearningMode[] = ["Original", "Simplified", "Example", "Step-by-Step", "Visual"];
+          for (const m of allModes) {
+            const res = formatOcrResult(mapModeToAction(m), selectedImage.name, rawOcr);
+            imageCacheRef.current[selectedImage.dataUrl]![m] = {
+              extracted: res.extractedText,
+              adapted: m === "Original" ? res.extractedText : res.adaptedText
+            };
           }
 
-          setImageResult({
-            action,
-            text: formatted
-          });
+          setImageStatus(`Image extracted and adapted successfully (${targetMode} Mode).`);
         } catch {
-          setImageResult({
-            action,
-            text: apiResult
-          });
+          setExtractedImageText(`Uploaded image: ${selectedImage.name}`);
+          setImageAdaptedByMode((prev) => ({ ...prev, [targetMode]: apiResult }));
+          setImageStatus(`Image analysis complete.`);
         }
         return;
       }
 
+      // Parse AI output into original extracted text and adapted explanation
+      const parsed = parseImageAnalysisOutput(apiResult);
+      const extracted = parsed.extractedText || `Uploaded image: ${selectedImage.name}`;
+      const adaptedText = targetMode === "Original" ? extracted : parsed.adaptedText;
+
+      setExtractedImageText(extracted);
+      setImageAdaptedByMode((prev) => ({
+        ...prev,
+        Original: extracted,
+        [targetMode]: adaptedText
+      }));
+
       if (!imageCacheRef.current[selectedImage.dataUrl]) {
         imageCacheRef.current[selectedImage.dataUrl] = {};
       }
-      imageCacheRef.current[selectedImage.dataUrl]![action] = apiResult;
+      imageCacheRef.current[selectedImage.dataUrl]![targetMode] = {
+        extracted,
+        adapted: adaptedText
+      };
 
-      setImageResult({
-        action,
-        text: apiResult
-      });
+      setImageStatus(`Image extracted and adapted successfully (${targetMode} Mode).`);
     } catch (error) {
-      setImageResult({
-        action,
-        text: error instanceof Error ? error.message : "Could not analyze the uploaded image."
-      });
+      setImageStatus(error instanceof Error ? error.message : "Could not analyze the uploaded image.");
     } finally {
-      setImageBusy(null);
+      setImageBusy(false);
     }
   }
+
+  // Load current extracted image text as active lesson in main workspace
+  function applyImageToMainWorkspace() {
+    if (!extractedImageText) return;
+    const title = uploadedImage ? uploadedImage.name.replace(/\.[^/.]+$/, "") : "Scanned Document Lesson";
+    setMaterial({
+      id: "uploaded-image-lesson",
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      description: "Uploaded document lesson",
+      content_type: "image",
+      original_content: extractedImageText
+    });
+    setAdapted(imageAdaptedByMode[activeImageMode] || extractedImageText);
+    setMode("Simplified");
+    setStatus(`Loaded "${title}" into main adaptive workspace.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const currentImageAdaptedText =
+    activeImageMode === "Original"
+      ? extractedImageText
+      : imageAdaptedByMode[activeImageMode] || extractedImageText;
 
   useEffect(() => {
     if (mode === "Original") setStatus("Showing original source material.");
@@ -491,6 +554,7 @@ export function LearningWorkspace() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      {/* Workspace Header */}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <Badge>Learning Workspace</Badge>
@@ -508,6 +572,7 @@ export function LearningWorkspace() {
         </div>
       </div>
 
+      {/* Main Adapt Button */}
       <div className="mt-8">
         <AdaptButton
           onComplete={() => {
@@ -518,6 +583,7 @@ export function LearningWorkspace() {
         />
       </div>
 
+      {/* Main Learning Modes Tabs */}
       <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Learning modes">
         {modes.map((item) => (
           <button
@@ -536,6 +602,7 @@ export function LearningWorkspace() {
         ))}
       </div>
 
+      {/* Main Dual Panels: Original Content vs Adapted by Adaptiva */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <Panel>
           <div className="flex items-center justify-between gap-4">
@@ -557,7 +624,12 @@ export function LearningWorkspace() {
               </p>
               <h2 className="mt-2 text-2xl font-black text-ink">{mode} Mode</h2>
             </div>
-            <AudioPlayer text={displayedText} />
+            <div className="flex items-center gap-2">
+              <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
+                English
+              </span>
+              <AudioPlayer text={displayedText} />
+            </div>
           </div>
           {mode === "Visual" ? (
             <div className="mt-5">
@@ -576,6 +648,7 @@ export function LearningWorkspace() {
         </Panel>
       </div>
 
+      {/* Main Adaptive Actions Bar */}
       <section className="mt-6">
         <h2 className="text-2xl font-black text-ink">Adaptive Actions</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
@@ -601,27 +674,21 @@ export function LearningWorkspace() {
         </div>
       </section>
 
-      {/* Image / Scanned Document Section */}
-      <section className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <Panel>
-          <div className="flex items-start gap-3">
-            <FileImage aria-hidden="true" className="text-moss" size={28} />
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">
-                Image / Scanned Document
-              </p>
-              <h2 className="mt-1 text-2xl font-black text-ink">OCR & Visual Learning</h2>
-            </div>
+      {/* ========================================================================= */}
+      {/* IMAGE / SCANNED DOCUMENT SECTION (Exact Dual Comparison Layout) */}
+      {/* ========================================================================= */}
+      <section className="mt-14 border-t border-ink/10 pt-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Badge>Image & Scanned Document</Badge>
+            <h2 className="mt-3 text-3xl font-black text-ink">
+              OCR & Visual Learning
+            </h2>
+            <p className="mt-2 text-base text-graphite">
+              Upload textbook pages, diagrams, or handwritten notes. Adaptiva transcribes the content and creates accessible learning modes.
+            </p>
           </div>
-
-          <label className="mt-5 grid min-h-28 cursor-pointer place-items-center rounded-card border-2 border-dashed border-moss/45 bg-mint/10 p-4 text-center font-black text-moss transition hover:bg-mint/20 hover:border-moss">
-            <div className="flex flex-col items-center gap-2">
-              <ScanText aria-hidden="true" size={24} className="text-moss" />
-              <span className="text-sm font-bold text-ink">
-                {uploadedImage ? uploadedImage.name : "Click to upload image or scanned document"}
-              </span>
-              <span className="text-xs font-normal text-graphite">Supports PNG, JPG, JPEG, WEBP</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
             <input
               ref={imageInputRef}
               className="sr-only"
@@ -629,171 +696,143 @@ export function LearningWorkspace() {
               accept="image/*"
               onChange={(event) => uploadImage(event.target.files?.[0])}
             />
-          </label>
-
-          {uploadedImage ? (
-            <div className="mt-4 overflow-hidden rounded-card border border-ink/10 bg-paper">
-              <img src={uploadedImage.dataUrl} alt={uploadedImage.name} className="max-h-60 w-full object-contain p-2" />
-            </div>
-          ) : null}
-
-          <Button
-            className="mt-4 w-full"
-            type="button"
-            variant="secondary"
-            disabled={Boolean(imageBusy)}
-            onClick={() => {
-              if (!uploadedImage) {
-                imageInputRef.current?.click();
-              } else {
-                void runImageAction(activeImageAction);
-              }
-            }}
-          >
-            {imageBusy ? (
-              <>
-                <Loader2 aria-hidden="true" size={18} className="animate-spin text-moss" />
-                Analyzing {activeImageAction}...
-              </>
-            ) : (
-              <>
-                <ScanText aria-hidden="true" size={18} />
-                {uploadedImage ? `Extract & Explain with ${activeImageAction}` : "Upload an image to extract text"}
-              </>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => imageInputRef.current?.click()}
+            >
+              <Upload aria-hidden="true" size={16} />
+              {uploadedImage ? "Upload new image" : "Upload image"}
+            </Button>
+            {uploadedImage && (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={applyImageToMainWorkspace}
+                title="Load this extracted scan into the main workspace above"
+              >
+                <Sparkles aria-hidden="true" size={16} />
+                Use in full workspace
+              </Button>
             )}
-          </Button>
-        </Panel>
-
-        <Panel>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">Uploaded Image Support</p>
-              <h2 className="mt-1 text-2xl font-black text-ink">
-                Choose explanation style
-              </h2>
-            </div>
-            {uploadedImage ? (
-              <span className="rounded-card border border-moss/30 bg-mint/14 px-3 py-1 text-xs font-bold text-moss">
-                📄 {uploadedImage.name}
-              </span>
-            ) : null}
           </div>
+        </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {[
-              { label: "Simple explanation" as ImageAdaptAction, icon: Sparkles, desc: "Plain language summary & key ideas" },
-              { label: "Example" as ImageAdaptAction, icon: BookOpen, desc: "Concrete real-world analogy" },
-              { label: "Visual explanation" as ImageAdaptAction, icon: Layers, desc: "Layout & visual structure breakdown" },
-              { label: "Step-by-step" as ImageAdaptAction, icon: ListChecks, desc: "Ordered sequential learning steps" }
-            ].map((item) => {
-              const Icon = item.icon;
-              const isSelected = activeImageAction === item.label;
-              const isItemBusy = imageBusy === item.label;
-
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={cn(
-                    "flex min-h-16 flex-col justify-center rounded-card border px-4 py-3 text-left transition",
-                    isSelected
-                      ? "border-moss bg-mint/14 shadow-sm ring-2 ring-moss/40"
-                      : "border-ink/10 bg-paper hover:border-moss/40 hover:bg-cloud",
-                    isItemBusy && "opacity-80"
-                  )}
-                  disabled={Boolean(imageBusy)}
-                  onClick={() => void runImageAction(item.label)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 font-black text-ink">
-                      {isItemBusy ? (
-                        <Loader2 aria-hidden="true" size={18} className="animate-spin text-moss" />
-                      ) : (
-                        <Icon aria-hidden="true" className={cn(isSelected ? "text-moss" : "text-graphite")} size={18} />
-                      )}
-                      {item.label}
-                    </span>
-                    {isSelected ? <CheckCircle2 aria-hidden="true" className="text-moss" size={18} /> : null}
-                  </div>
-                  <span className="mt-1 text-xs text-graphite">{item.desc}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Image Result Area */}
-          <div className="mt-6 rounded-card border border-ink/10 bg-paper p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 pb-3">
-              <div className="flex items-center gap-2">
-                <span className={cn("size-3 rounded-full", imageBusy ? "bg-amber-500 animate-ping" : "bg-moss")} />
-                <p className="font-black text-ink">
-                  {imageResult ? imageResult.action : activeImageAction} Result
-                </p>
-              </div>
-              {imageResult && !imageBusy ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    type="button"
-                    onClick={() => speak(imageResult.text)}
-                    aria-label="Read extracted text and explanation aloud"
-                  >
-                    <Volume2 aria-hidden="true" size={15} />
-                    Listen
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(imageResult.text);
-                      setCopiedImageResult(true);
-                      setTimeout(() => setCopiedImageResult(false), 2000);
-                    }}
-                    aria-label="Copy result"
-                  >
-                    {copiedImageResult ? (
-                      <>
-                        <Check aria-hidden="true" size={15} className="text-moss" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy aria-hidden="true" size={15} />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 min-h-32 text-base leading-8 text-graphite">
-              {imageBusy ? (
-                <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
-                  <Loader2 aria-hidden="true" size={32} className="animate-spin text-moss" />
-                  <p className="font-black text-ink">Extracting & analyzing content...</p>
-                  <p className="text-xs text-graphite">
-                    Generating {activeImageAction} for {uploadedImage?.name}
-                  </p>
-                </div>
-              ) : imageResult ? (
-                <ReadingContent
-                  text={imageResult.text}
-                  label={`Extracted image information for ${imageResult.action}`}
-                />
-              ) : (
-                <div className="py-6 text-center">
-                  <p className="font-bold text-ink">No image analyzed yet.</p>
-                  <p className="mt-1 text-sm text-graphite">
-                    Upload an image or scanned document on the left. Adaptiva will automatically extract all readable text and display the adapted explanation here based on your chosen option.
-                  </p>
-                </div>
+        {/* Mode Switcher Tabs (Identical to top workspace tabs) */}
+        <div className="mt-8 flex flex-wrap gap-2" role="tablist" aria-label="Image learning modes">
+          {imageModes.map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={activeImageMode === item}
+              className={cn(
+                "min-h-11 rounded-card border px-4 text-sm font-black transition",
+                activeImageMode === item
+                  ? "border-ink bg-ink text-white"
+                  : "border-ink/10 bg-white text-graphite hover:bg-cloud"
               )}
+              onClick={() => void processImage(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* Dual Side-by-Side Comparison Panels */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          {/* Left Panel: ORIGINAL CONTENT */}
+          <Panel>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-graphite">
+                  Original Content
+                </p>
+                <h3 className="mt-2 text-2xl font-black text-ink">
+                  {uploadedImage ? uploadedImage.name.replace(/\.[^/.]+$/, "") : "Uploaded Scanned Page"}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <BookOpen aria-hidden="true" className="text-moss" size={28} />
+              </div>
             </div>
-          </div>
-        </Panel>
+
+            {uploadedImage ? (
+              <div className="mt-4 flex items-center gap-3 rounded-card border border-ink/10 bg-paper p-2">
+                <img
+                  src={uploadedImage.dataUrl}
+                  alt={uploadedImage.name}
+                  className="h-14 w-20 rounded object-cover border border-ink/10"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-ink">{uploadedImage.name}</p>
+                  <p className="text-[11px] font-bold text-moss">Extracted via OCR & Vision</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  Change
+                </Button>
+              </div>
+            ) : null}
+
+            {imageBusy ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <Loader2 aria-hidden="true" size={32} className="animate-spin text-moss" />
+                <p className="font-black text-ink">Extracting text from image...</p>
+              </div>
+            ) : (
+              <ReadingContent
+                className="mt-5 text-lg leading-9 text-graphite"
+                text={
+                  extractedImageText ||
+                  "Upload an image or scanned document to see the original extracted text displayed here with dyslexia support and word definitions."
+                }
+              />
+            )}
+          </Panel>
+
+          {/* Right Panel: ADAPTED BY ADAPTIVA */}
+          <Panel>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-moss">
+                  Adapted by Adaptiva
+                </p>
+                <h3 className="mt-2 text-2xl font-black text-ink">{activeImageMode} Mode</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-card border border-ink/10 bg-cloud px-3 py-1 text-xs font-bold text-ink">
+                  English
+                </span>
+                <AudioPlayer text={currentImageAdaptedText} />
+              </div>
+            </div>
+
+            {imageBusy ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <Loader2 aria-hidden="true" size={32} className="animate-spin text-moss" />
+                <p className="font-black text-ink">Generating {activeImageMode} Mode...</p>
+              </div>
+            ) : (
+              <ReadingContent
+                className="mt-5 text-lg leading-9 text-ink"
+                text={
+                  currentImageAdaptedText ||
+                  "Select an adapted learning mode above to see the personalized accessible explanation for your uploaded image."
+                }
+              />
+            )}
+          </Panel>
+        </div>
+
+        {/* Status text matching screenshot */}
+        <p className="mt-4 text-xs font-bold text-moss">
+          {imageStatus}
+        </p>
       </section>
     </div>
   );
